@@ -30,9 +30,7 @@ def train():
         model = ResNet(BasicBlockNoShort, [9,9,9]).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    model_unique_id = f"resnet-{
-        'short' if args.short else 'noshort'
-    }-{args.batch_size}-{args.epochs}epochs"
+    model_unique_id = f"resnet-{'short' if args.short else 'noshort'}-{args.batch_size}-{args.epochs}epochs"
 
     # Training loop
     num_epochs = args.epochs
