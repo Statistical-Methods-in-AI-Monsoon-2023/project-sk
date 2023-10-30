@@ -32,7 +32,7 @@ def train():
 
     model_unique_id = f"resnet-{
         'short' if args.short else 'noshort'
-    }-{args.batch_size}-{args.epochs}epochs.pt"
+    }-{args.batch_size}-{args.epochs}epochs"
 
     # Training loop
     num_epochs = args.epochs

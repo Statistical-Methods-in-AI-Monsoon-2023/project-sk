@@ -34,7 +34,7 @@ def train():
         print("Invalid VGG Configuration")
         return
     
-    model_unique_id = f"vgg{vgg_num_layers}-{args.batch_size}-{args.epochs}epochs.pt"
+    model_unique_id = f"vgg{vgg_num_layers}-{args.batch_size}-{args.epochs}epochs"
 
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
