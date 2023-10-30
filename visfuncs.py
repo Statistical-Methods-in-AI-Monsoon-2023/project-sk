@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 import torchvision.models as models
 import torch.nn.functional as F
 import copy
+from models.resnet import ResNet, BasicBlock
 
 @torch.no_grad()
 def give_loss_acc(dataloader, model, criterion, device):
@@ -46,7 +47,8 @@ def interpolate(dataloader, criterion, model1, model2, stepsize, device, log=Fal
     returns the loss and accuracy lists
     '''
     alpha = torch.linspace(0, 1, stepsize)
-    model = copy.deepcopy(model1)
+    #model = copy.deepcopy(model2)
+    model = ResNet(BasicBlock, [9,9,9]).to(device)
     losses = []
     accs = []
     for a in alpha:
@@ -60,7 +62,7 @@ def interpolate(dataloader, criterion, model1, model2, stepsize, device, log=Fal
         losses.append(loss)
         accs.append(acc)
     
-    return losses, accs, alpha.numpy()
+    return torch.tensor(losses).numpy(), torch.tensor(accs).numpy(), alpha.numpy()
 
 def move1D(dataloader, criterion, model1, dirn, stepsize, device, log=False):
     '''
@@ -89,7 +91,7 @@ def move1D(dataloader, criterion, model1, dirn, stepsize, device, log=False):
         losses.append(loss)
         accs.append(acc)
     
-    return losses, accs, alpha.numpy()
+    return torch.tensor(losses).numpy(), torch.tensor(accs).numpy(), alpha.numpy()
 
 def move2D(dataloader, criterion, model1, dirn1, dirn2, stepsize1, stepsize2, device, log=False):
     '''
