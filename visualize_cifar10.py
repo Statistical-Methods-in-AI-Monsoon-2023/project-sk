@@ -9,10 +9,20 @@ import torchvision.models as models
 import torch.nn.functional as F
 import copy
 import matplotlib.pyplot as plt
-from models.resnet import ResNet, BasicBlock
+from models.resnet import ResNet, BasicBlock, BasicBlockNoShort
 from visfuncs  import interpolate, move1D, move2D
 from data import load_cifar10
 import numpy as np
+import argparse
+
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('modelname')
+parser.add_argument('weightpath')
+
+args = parser.parse_args()
+
 
 def give_model(path, device):
     model_init = torch.load(path, map_location=device)
@@ -41,7 +51,7 @@ def plot_loss_acc_move1D(model, dirn, criterion, dataloader, device):
 def plot_loss_acc_move2D(model, dirn1, dirn2, criterion, dataloader, device):
     stepsize = 20
     loss, accs, x, y = move2D(dataloader, criterion, model, dirn1, dirn2, stepsize, stepsize, device, log=True)
-    np.save('2d.npy', np.array([[loss], [accs], [x], [y]]))
+    np.save('2d'+args.modelname+'.npy', np.array([[loss], [accs], [x], [y]]))
     ax = plt.axes(projection='3d')
     ax.plot_surface(x, y, loss)
     plt.show()
@@ -52,7 +62,7 @@ def plot_loss_acc_move2D(model, dirn1, dirn2, criterion, dataloader, device):
 train_loader, test_loader = load_cifar10(128, 2)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-model1 = give_model('weights/resmshortcut1.pt', device)
+model1 = give_model('weights/'+args.weightpath, device)
 # model2 = give_model('weights/resm2.pt', device)
 
 # Uncomment for printing the parameters of the model
@@ -71,14 +81,19 @@ criterion = nn.CrossEntropyLoss()
 
 # plot_loss_acc_move1D(model1, dirn, criterion, test_loader, device)
 
-dirn1 = ResNet(BasicBlock, [9,9,9])
+if "noshort" in args.modelname:
+    block = BasicBlockNoShort
+else:
+    block = BasicBlock
+
+dirn1 = ResNet(block, [9,9,9])
 dirn1.to(device)
 for param, m_param in zip(dirn1.parameters(), model1.parameters()):
      param.data = torch.randn_like(param.data)
      param.data = param.data / torch.linalg.norm(param.data)
      param.data *= m_param
 
-dirn2 = ResNet(BasicBlock, [9,9,9])
+dirn2 = ResNet(block, [9,9,9])
 dirn2.to(device)
 for param, m_param in zip(dirn2.parameters(), model1.parameters()):
     param.data = torch.randn_like(param.data)

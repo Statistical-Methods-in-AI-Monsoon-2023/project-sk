@@ -10,20 +10,28 @@ from models.resnet import ResNet, BasicBlock, BasicBlockNoShort
 from data import load_cifar10
 import sys
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Train a ResNet model on CIFAR10')
+parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train for')
+parser.add_argument('--batch_size', type=int, default=128, help='Batch size')
+parser.add_argument('--short', action='store_true', help='Use the short version of ResNet')
+args = parser.parse_args()
+
 def train():
-    train_loader, test_loader= load_cifar10(int(sys.argv[1]), 2)
+    train_loader, test_loader= load_cifar10(int(args.batch_size),2)
 
     # Create the ResNet model and optimizer
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    if(sys.argv[2] == 'short'):
+    if(args.short):
         model = ResNet(BasicBlock, [9,9,9]).to(device)
     else:
         model = ResNet(BasicBlockNoShort, [9,9,9]).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Training loop
-    num_epochs = 50
+    num_epochs = args.epochs
     for epoch in range(num_epochs):
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):
@@ -38,10 +46,10 @@ def train():
             if batch_idx % 100 == 0:
                 print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
 
-    if(sys.argv[2] == 'short'):
-        torch.save(model, "weights/resmshortcut1.pt")
+    if(args.short):
+        torch.save(model, f"weights/resshortcut-{args.batch_size}.pt")
     else:
-        torch.save(model, "weights/reslongcutm1.pt")
+        torch.save(model, f"weights/reslongcut-{args.batch_size}.pt")
     # Test the model
     model.eval()
     test_loss = 0
