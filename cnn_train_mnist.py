@@ -7,16 +7,9 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from models.cnn import CNN
+from data import load_mnist
 
-# Define data transforms
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-
-# Load and preprocess the MNIST dataset
-train_dataset = MNIST(root='./data', train=True, transform=transform, download=True)
-test_dataset = MNIST(root='./data', train=False, transform=transform)
-
-train_loader = DataLoader(dataset=train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(dataset=test_dataset, batch_size=32)
+train_loader, test_loader= load_mnist(32, 2)
 
 # Create the CNN model and optimizer
 model = CNN()

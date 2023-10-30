@@ -50,7 +50,7 @@ def plot_loss_acc_move2D(model, dirn1, dirn2, criterion, dataloader, device):
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
 # Load and preprocess the MNIST dataset
-test_dataset = MNIST(root='./data', train=False, transform=transform, download=True)
+test_dataset = MNIST(root='./data', train=True, transform=transform, download=True)
 test_loader = DataLoader(dataset=test_dataset, batch_size=32)
 
 model1 = give_model('weights/m1.pt')
