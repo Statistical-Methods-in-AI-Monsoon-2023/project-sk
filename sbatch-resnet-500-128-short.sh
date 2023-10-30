@@ -9,6 +9,6 @@
 module load u18/cuda/10.2
 module load u18/cudnn/7.6.5-cuda-10.2
 
-python3 resnet_train_cifar10.py --epochs 500 --batch_size 128 --short
+python3 resnet_train_cifar.py --epochs 500 --batch_size 128 --short
 
 # echo "Hello World"
