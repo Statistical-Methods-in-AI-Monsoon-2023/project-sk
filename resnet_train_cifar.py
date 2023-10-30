@@ -23,7 +23,7 @@ def train():
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Training loop
-    num_epochs = 5
+    num_epochs = 50
     for epoch in range(num_epochs):
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):

@@ -49,11 +49,11 @@ def plot_loss_acc_move2D(model, dirn1, dirn2, criterion, dataloader, device):
     ax.plot_surface(x, y, accs)
     plt.show()
 
-train_loader, test_loader = load_cifar10(32, 2)
+train_loader, test_loader = load_cifar10(128, 2)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-model1 = give_model('weights/resm1.pt', device)
-model2 = give_model('weights/resm2.pt', device)
+model1 = give_model('weights/resmshortcut1.pt', device)
+# model2 = give_model('weights/resm2.pt', device)
 
 # Uncomment for printing the parameters of the model
 
@@ -80,9 +80,9 @@ for param, m_param in zip(dirn1.parameters(), model1.parameters()):
 
 dirn2 = ResNet(BasicBlock, [9,9,9])
 dirn2.to(device)
-for param, m_param in zip(dirn2.parameters(), model2.parameters()):
+for param, m_param in zip(dirn2.parameters(), model1.parameters()):
     param.data = torch.randn_like(param.data)
     param.data = param.data / torch.linalg.norm(param.data)
     param.data *= m_param 
 
-plot_loss_acc_move2D(model1, dirn1, dirn2, criterion, test_loader, device)
+plot_loss_acc_move2D(model1, dirn1, dirn2, criterion, train_loader, device)
