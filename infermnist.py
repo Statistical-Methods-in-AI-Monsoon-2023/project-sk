@@ -45,8 +45,8 @@ def give_model(path):
     return model_init
 
 
-model1 = give_model('m1.pt')
-model2 = give_model('m2.pt')
+model1 = give_model('weights/m1.pt')
+model2 = give_model('weights/m2.pt')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 criterion = nn.CrossEntropyLoss()
@@ -73,7 +73,6 @@ def interpolate(dataloader, criterion, model1, model2):
     stepsize = 20
     alpha = torch.linspace(0, 1, stepsize)
     model = CNN()
-    model = torch.load("m1.pt", map_location=torch.device('cpu'))
     losses = []
     accs = []
     for a in alpha:

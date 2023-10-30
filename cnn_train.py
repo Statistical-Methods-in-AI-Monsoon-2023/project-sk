@@ -54,7 +54,7 @@ for epoch in range(num_epochs):
         if batch_idx % 100 == 0:
             print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
 
-torch.save(model, "m2.pt")
+torch.save(model, "weights/m2.pt")
 # Test the model
 model.eval()
 test_loss = 0
