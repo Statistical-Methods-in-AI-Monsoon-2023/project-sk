@@ -129,6 +129,4 @@ def move2D(dataloader, criterion, model1, dirn1, dirn2, stepsize1, stepsize2, de
     losses = torch.tensor(losses).reshape(stepsize1, stepsize2).numpy()
     accs = torch.tensor(accs).reshape(stepsize1, stepsize2).numpy()
     x, y = torch.meshgrid(alpha, beta)
-    print(x)
-    print(y)
     return losses, accs, x.numpy(), y.numpy()

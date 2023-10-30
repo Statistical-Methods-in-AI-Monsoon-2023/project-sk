@@ -74,12 +74,15 @@ criterion = nn.CrossEntropyLoss()
 # plot_loss_acc_move1D(model1, dirn, criterion, test_loader, device)
 
 dirn1 = CNN()
-for name, param in dirn1.named_parameters():
+for param, m_param in zip(dirn1.parameters(), model1.parameters()):
     param.data = torch.randn_like(param.data)
-
+    param.data = param.data / torch.linalg.norm(param.data)
+    param.data *= m_param
 
 dirn2 = CNN()
-for name, param in dirn2.named_parameters():
+for param, m_param in zip(dirn2.parameters(), model2.parameters()):
     param.data = torch.randn_like(param.data)
+    param.data = param.data / torch.linalg.norm(param.data)
+    param.data *= m_param 
 
 plot_loss_acc_move2D(model1, dirn1, dirn2, criterion, test_loader, device)
