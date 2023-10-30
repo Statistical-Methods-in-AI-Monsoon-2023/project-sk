@@ -9,7 +9,6 @@ import torchvision.models as models
 import torch.nn.functional as F
 import copy
 import matplotlib.pyplot as plt
-from models.resnet import ResNet, BasicBlock, BasicBlockNoShort
 from visfuncs  import interpolate, move1D, move2D
 from data import load_cifar10
 import numpy as np
@@ -18,8 +17,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('modelname')
-parser.add_argument('weightpath')
+parser.add_argument('--weight_path', type=str, default='resm1.pt', help='Path to the model')
 
 args = parser.parse_args()
 
@@ -62,7 +60,7 @@ def plot_loss_acc_move2D(model, dirn1, dirn2, criterion, dataloader, device):
 train_loader, test_loader = load_cifar10(128, 2)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-model1 = give_model('weights/'+args.weightpath, device)
+model1 = give_model(args.weightpath, device)
 # model2 = give_model('weights/resm2.pt', device)
 
 # Uncomment for printing the parameters of the model
@@ -81,19 +79,14 @@ criterion = nn.CrossEntropyLoss()
 
 # plot_loss_acc_move1D(model1, dirn, criterion, test_loader, device)
 
-if "noshort" in args.modelname:
-    block = BasicBlockNoShort
-else:
-    block = BasicBlock
-
-dirn1 = ResNet(block, [9,9,9])
+dirn1 = model1.clone()
 dirn1.to(device)
 for param, m_param in zip(dirn1.parameters(), model1.parameters()):
      param.data = torch.randn_like(param.data)
      param.data = param.data / torch.linalg.norm(param.data)
      param.data *= m_param
 
-dirn2 = ResNet(block, [9,9,9])
+dirn2 = model1.clone()
 dirn2.to(device)
 for param, m_param in zip(dirn2.parameters(), model1.parameters()):
     param.data = torch.randn_like(param.data)
