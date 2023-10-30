@@ -30,6 +30,10 @@ def train():
         model = ResNet(BasicBlockNoShort, [9,9,9]).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+    model_unique_id = f"resnet-{
+        'short' if args.short else 'noshort'
+    }-{args.batch_size}-{args.epochs}epochs.pt"
+
     # Training loop
     num_epochs = args.epochs
     for epoch in range(num_epochs):
@@ -47,9 +51,9 @@ def train():
                 print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
 
     if(args.short):
-        torch.save(model, f"weights/resshortcut-{args.batch_size}.pt")
+        torch.save(model, f"weights/{model_unique_id}.pt")
     else:
-        torch.save(model, f"weights/reslongcut-{args.batch_size}.pt")
+        torch.save(model, f"weights/{model_unique_id}.pt")
     # Test the model
     model.eval()
     test_loss = 0

@@ -33,6 +33,8 @@ def train():
     else:
         print("Invalid VGG Configuration")
         return
+    
+    model_unique_id = f"vgg{vgg_num_layers}-{args.batch_size}-{args.epochs}epochs.pt"
 
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
@@ -52,7 +54,7 @@ def train():
             if batch_idx % 100 == 0:
                 print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
 
-    torch.save(model, f"weights/{vgg_id}.pt")
+    torch.save(model, f"weights/{model_unique_id}.pt")
     # Test the model
     model.eval()
     test_loss = 0
