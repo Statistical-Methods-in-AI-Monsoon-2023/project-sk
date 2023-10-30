@@ -9,33 +9,7 @@ import torchvision.models as models
 import torch.nn.functional as F
 import copy
 import matplotlib.pyplot as plt
-
-# Define the CNN model
-class CNN(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 5, 3)
-        self.conv2 = nn.Conv2d(5, 5, 3)
-        self.maxpool = nn.MaxPool2d(2)
-        self.fc = nn.Linear(125, 10)
-        self.dropout = nn.Dropout2d(p = 0.01)
-        
-    def forward(self, x):
-        N = x.shape[0]
-        x = self.maxpool(F.relu(self.conv1(x)))
-        x = self.dropout(x)
-        x = self.maxpool(F.relu(self.conv2(x)))
-        x = self.dropout(x).reshape(N, -1)
-        x = self.fc(x)
-        return F.sigmoid(x)
-
-# Define data transforms
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-
-# Load and preprocess the MNIST dataset
-test_dataset = MNIST(root='./data', train=False, transform=transform)
-test_loader = DataLoader(dataset=test_dataset, batch_size=32)
-
+from models.cnn import CNN
 
 def give_model(path):
     model_init = CNN()
@@ -45,13 +19,24 @@ def give_model(path):
     return model_init
 
 
+# Define data transforms
+transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+
+# Load and preprocess the MNIST dataset
+test_dataset = MNIST(root='./data', train=False, transform=transform)
+test_loader = DataLoader(dataset=test_dataset, batch_size=32)
+
 model1 = give_model('weights/m1.pt')
 model2 = give_model('weights/m2.pt')
 
+# Uncomment for printing the parameters of the model
+
+# for name, param in model2.named_parameters():
+    # print(name)
+    # print(param.shape)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 criterion = nn.CrossEntropyLoss()
-
-corr = 0
 
 @torch.no_grad()
 def give_loss_acc(dataloader, model, criterion):
@@ -87,18 +72,12 @@ def interpolate(dataloader, criterion, model1, model2):
     
     return losses, accs
 
-def plot_loss(model1, model2, criterion, dataloader):
+def plot_loss_acc(model1, model2, criterion, dataloader):
     loss, accs = interpolate(dataloader, criterion, model1, model2)
     plt.plot(loss)
     plt.show()
     plt.plot(accs)
     plt.show()
 
-for name, param in model2.named_parameters():
-    print(name)
-    print(param.shape)
-plot_loss(model1, model2, criterion, test_loader)
 
-# for i, j in zip(model.parameters(), new_model.parameters()):
-    # print(i.data)
-    # print(j.data)
+plot_loss_acc(model1, model2, criterion, test_loader)

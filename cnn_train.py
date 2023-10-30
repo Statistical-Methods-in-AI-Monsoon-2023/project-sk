@@ -6,25 +6,7 @@ import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-
-# Define the CNN model
-class CNN(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 5, 3)
-        self.conv2 = nn.Conv2d(5, 5, 3)
-        self.maxpool = nn.MaxPool2d(2)
-        self.fc = nn.Linear(125, 10)
-        self.dropout = nn.Dropout2d(p = 0.01)
-        
-    def forward(self, x):
-        N = x.shape[0]
-        x = self.maxpool(F.relu(self.conv1(x)))
-        x = self.dropout(x)
-        x = self.maxpool(F.relu(self.conv2(x)))
-        x = self.dropout(x).reshape(N, -1)
-        x = self.fc(x)
-        return F.sigmoid(x)
+from models.cnn import CNN
 
 # Define data transforms
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])

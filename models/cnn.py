@@ -8,14 +8,14 @@ from torch.utils.data import DataLoader
 import torchvision.models as models
 import torch.nn.functional as F
 
+# Define the CNN model
 class CNN(nn.Module):
-    
-    def __init__(self, filters):
+    def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, filters[0]['num_filters'], filters[0]['kernel_size'])
-        self.conv2 = nn.Conv2d(filters[0]['num_filters'], filters[1]['num_filters'], filters[1]['kernel_size'])
-        self.maxpool = nn.MaxPool2d(3)
-        self.fc = nn.Linear(20, 10)
+        self.conv1 = nn.Conv2d(1, 5, 3)
+        self.conv2 = nn.Conv2d(5, 5, 3)
+        self.maxpool = nn.MaxPool2d(2)
+        self.fc = nn.Linear(125, 10)
         self.dropout = nn.Dropout2d(p = 0.01)
         
     def forward(self, x):
@@ -25,7 +25,7 @@ class CNN(nn.Module):
         x = self.maxpool(F.relu(self.conv2(x)))
         x = self.dropout(x).reshape(N, -1)
         x = self.fc(x)
-        return x
+        return F.sigmoid(x)
     
 class MNIST(Dataset):
     '''
