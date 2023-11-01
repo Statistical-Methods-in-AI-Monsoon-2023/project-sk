@@ -15,9 +15,18 @@ x = x[0]
 y = y[0]
 accs = accs[0]
 
+model_unique_id = args.file.replace('.npy', '')
+
+# mkdir results/plots/
+import os
+os.makedirs('results/plots/', exist_ok=True)
+
 ax = plt.axes(projection='3d')
 ax.plot_surface(x, y, loss)
-plt.show()
+# plt.show()
+plt.savefig(f'results/plots/loss-{model_unique_id}.png')
+
 ax = plt.axes(projection='3d')
 ax.plot_surface(x, y, accs)
-plt.show()
+# plt.show()
+plt.savefig(f'results/plots/acc-{model_unique_id}.png')

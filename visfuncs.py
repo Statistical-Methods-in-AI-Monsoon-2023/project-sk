@@ -28,7 +28,7 @@ def give_loss_acc(dataloader, model, criterion, device):
         num += inputs.shape[0]
         inputs, labels = inputs.to(device), labels.to(device)
         outputs = model(inputs)
-        loss += criterion(outputs, labels)
+        loss += criterion(outputs, labels).item()
         corr += torch.where(labels == torch.argmax(outputs, -1))[0].shape[0]
 
     acc = corr / num
@@ -57,8 +57,7 @@ def interpolate(dataloader, criterion, model1, model2, stepsize, device, log=Fal
 
         loss, acc = give_loss_acc(dataloader, model, criterion, device)
         if(log):
-            print(loss)
-            print(acc)
+            print(f"Loss: {loss}, Acc: {acc}, Alpha: {a}")
         losses.append(loss)
         accs.append(acc)
     
