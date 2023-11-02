@@ -107,8 +107,8 @@ def move2D(dataloader, criterion, model1, dirn1, dirn2, stepsize1, stepsize2, de
     returns the loss and accuracy lists
     '''
 
-    alpha = torch.linspace(-100, 100, stepsize1)
-    beta = torch.linspace(-100, 100, stepsize2)
+    alpha = torch.linspace(-10, 10, stepsize1)
+    beta = torch.linspace(-10, 10, stepsize2)
 
     model = copy.deepcopy(model1)
 
