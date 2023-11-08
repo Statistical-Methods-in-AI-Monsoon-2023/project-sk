@@ -1,0 +1,12 @@
+{
+	"2dplot": "2dplot.json",
+	"2d": "2d.json",
+	"2dresnet-short-32": "2dresnet-short-32.json",
+	"2dresnet-short-128": "2dresnet-short-128.json",
+	"2dresnet-noshort-128": "2dresnet-noshort-128.json",
+	"2dresnet-noshort-32": "2dresnet-noshort-32.json",
+	"2dshort128": "2dshort128.json",
+	"2dvgg_extended_plot": "2dvgg_extended_plot.json",
+	"2dvgg": "2dvgg.json",
+	"2d-short12": "2d-short128.json"
+}

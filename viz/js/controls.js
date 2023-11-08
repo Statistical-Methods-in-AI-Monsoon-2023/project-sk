@@ -21,6 +21,12 @@ function init_keys() {
 			case 'ArrowRight':
 				world.controls.right = flag
 				break
+			case '+':
+				world.controls.zoom_in = flag
+				break
+			case '-':
+				world.controls.zoom_out = flag
+				break
 		}
 	}
 	document.addEventListener('keydown', handler(true))

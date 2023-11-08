@@ -6,6 +6,22 @@ function update(delta) {
 	
 	TWEEN.update()
 
+	const {orbit_cam, orbit} = world
+
+	// zooming
+	if (world.controls.zoom_in) {
+		orbit_cam.zoom += 0.1
+		orbit_cam.updateProjectionMatrix()
+		world.controls.zoom_in = false
+	}
+	if (world.controls.zoom_out) {
+		orbit_cam.zoom -= 0.1
+		orbit_cam.updateProjectionMatrix()
+		world.controls.zoom_out = false
+	}
+
+	orbit.update()
+
 }
 
 function action() {

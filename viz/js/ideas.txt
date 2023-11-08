@@ -1,0 +1,5 @@
+multiple cameras
+light at the minima
+rolling ball
+ball with light
+ball with light and camera

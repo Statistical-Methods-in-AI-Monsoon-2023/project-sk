@@ -16,9 +16,17 @@ function load_models() {
 
 }
 
+async function load_model_names() {
+	await fetch('models.json').then(e => e.json()).then(json => {
+		world.model_names = json
+		world.active_model = Object.values(json)[0]
+	})
+}
+
 async function load_assets() {
 	load_textures()
 	load_models()
+	await load_model_names()
 }
 
 export { load_assets }

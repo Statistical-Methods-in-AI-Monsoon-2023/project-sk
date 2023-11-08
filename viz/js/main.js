@@ -10,10 +10,9 @@ import { action } from './action.js'
 
 function init_controls() {
 	init_keys()
-	init_swipes()
+	// init_swipes()
 	init_orbit()
 }
-
 
 async function main() {
 	if (!WEBGL.isWebGLAvailable()) {
@@ -29,7 +28,7 @@ async function main() {
 	init_controls()
 	add_lights()
 
-	world.camera=world.orbit_cam
+	world.camera = world.orbit_cam
 	action()
 	console.log('main() done')
 }

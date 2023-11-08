@@ -16,7 +16,23 @@ const world = {
 	models: {
 	},
 	textures: {
-	}
+	},
+
+	plots:{
+		loss: {
+			data: null,
+			mesh: null,
+			visible: true,
+		},
+		acc: {
+			data: null,
+			mesh: null,
+			visible: false,
+		}
+	},
+	model_names: {},
+	active_model: null,
+	model_path_prefix:"plot_json/"
 }
 
 const globals = {
