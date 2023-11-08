@@ -3,6 +3,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 def load_mnist(batch_size):
     # Define data transforms
@@ -17,7 +18,7 @@ def load_mnist(batch_size):
     
     return train_loader, test_loader
 
-def load_cifar10(batch_size, num_workers):
+def load_cifar10(batch_size, num_workers, distributed=False):
 
     transform = transforms.Compose([
             transforms.ToTensor(),
@@ -29,7 +30,15 @@ def load_cifar10(batch_size, num_workers):
     testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform)
     
     kwargs = {'num_workers': num_workers, 'pin_memory': True}
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=False, **kwargs)
-    test_loader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
+    
+    train_sampler = None
+    test_sampler = None
+
+    if(distributed):
+        train_sampler = DistributedSampler(trainset)
+        test_sampler = DistributedSampler(testset)
+
+    train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=False, **kwargs, sampler=train_sampler)
+    test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2, sampler=test_sampler)
 
     return train_loader, test_loader
