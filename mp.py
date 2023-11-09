@@ -38,10 +38,10 @@ def train(rank, args):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     model = give_model(args).to(device)
+    model_unique_id = f"{model.get_unique_id()}-{args.batch_size}-{args.epochs}epochs"
     # Create a DDP instance
     model.to(rank)
     model = DDP(model, device_ids=[rank])
-    model_unique_id = f"{model.get_unique_id()}-{args.batch_size}-{args.epochs}epochs"
     optimizer = optim.Adam(model.parameters(), lr=0.1)
     # Training loop
     num_epochs = args.epochs
