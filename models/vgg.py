@@ -4,12 +4,6 @@ import torch
 from torch import Tensor
 from torch import nn
 
-__all__ = [
-    "VGG",
-    "vgg11", "vgg13", "vgg16", "vgg19",
-    "vgg11_bn", "vgg13_bn", "vgg16_bn", "vgg19_bn",
-]
-
 vgg_cfgs: Dict[str, List[Union[str, int]]] = {
     "vgg11": [64, "M", 128, "M", 256, 256, "M", 512, 512, "M", 512, 512, "M"],
     "vgg13": [64, 64, "M", 128, 128, "M", 256, 256, "M", 512, 512, "M", 512, 512, "M"],
@@ -40,9 +34,19 @@ def _make_layers(vgg_cfg: List[Union[str, int]], batch_norm: bool = False) -> nn
 
 
 class VGG(nn.Module):
-    def __init__(self, vgg_cfg: List[Union[str, int]], batch_norm: bool = False, num_classes: int = 1000) -> None:
+    def __init__(self, margs = "11", num_classes: int = 1000) -> None:
         super(VGG, self).__init__()
-        self.features = _make_layers(vgg_cfg, batch_norm)
+        
+        margs = margs.split(",")
+        self.vgg_id = "vgg"+str(margs[0])
+        self.batch_norm = False
+        if len(margs) > 1:
+            self.batch_norm = True if margs[1] == "bn" else False
+        if self.vgg_id not in vgg_cfgs:
+            raise ValueError(f"Invalid config. Valid options are {list(vgg_cfgs.keys())}")
+        vgg_cfg = vgg_cfgs[self.vgg_id]
+
+        self.features = _make_layers(vgg_cfg, self.batch_norm)
 
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
 
@@ -83,3 +87,9 @@ class VGG(nn.Module):
             elif isinstance(module, nn.Linear):
                 nn.init.normal_(module.weight, 0, 0.01)
                 nn.init.constant_(module.bias, 0)
+    
+    def get_unique_id(self):
+        if self.batch_norm:
+            return f"vgg-{self.vgg_id}-bn"
+        else:
+            return f"vgg-{self.vgg_id}"

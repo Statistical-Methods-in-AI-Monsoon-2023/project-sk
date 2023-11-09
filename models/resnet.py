@@ -49,9 +49,17 @@ class BasicBlockNoShort(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10):
+    def __init__(self, margs="noshort", num_blocks=[9,9,9], num_classes=10):
         super(ResNet, self).__init__()
         self.in_planes = 16
+
+        self.block_type = margs
+        if margs == "short":
+            block = BasicBlock
+        elif margs == "noshort":
+            block = BasicBlockNoShort
+        else:
+            raise ValueError("block_type must be one of 'short' or 'noshort'")
 
         self.conv1  = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1    = nn.BatchNorm2d(16)
@@ -78,3 +86,6 @@ class ResNet(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out
+    
+    def get_unique_id(self):
+        return f"resnet-{self.block_type}"

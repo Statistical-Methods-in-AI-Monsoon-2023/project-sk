@@ -9,7 +9,7 @@ import torchvision.models as models
 import torch.nn.functional as F
 import copy
 import matplotlib.pyplot as plt
-from models.resnet import ResNet, BasicBlock, BasicBlockNoShort
+from models import give_model
 from visfuncs  import interpolate, move1D, move2D
 from data import load_cifar10
 import numpy as np
@@ -18,19 +18,19 @@ import torch.multiprocessing as mp
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('modelname')
-parser.add_argument('weightpath')
+parser.add_argument('weight_path', type=str, help='Path to the weights file')
+parser.add_argument('--mname', type=str, help='Name of the model',required=True)
+parser.add_argument('--margs', type=str, default="", help='Arguments for the model')
 
-
-def give_model(path, device):
+def load_model_with_weights(path, device):
     model_init = torch.load(path, map_location=device)
-    try:
-        net = ResNet(BasicBlockNoShort, [9,9,9])
-        net.load_state_dict(model_init['state_dict'])
-        net.eval()
-        return net
-    except:
-        pass
+    # try:
+    #     net = ResNet(BasicBlockNoShort, [9,9,9])
+    #     net.load_state_dict(model_init['state_dict'])
+    #     net.eval()
+    #     return net
+    # except:
+    #     pass
     model_init.eval()
 
     return model_init
@@ -63,7 +63,9 @@ def plot_loss_acc_move2D(model, dirn1, dirn2, criterion, dataloader, device):
     stepsize = 20
     loss, accs, x, y = move2D(dataloader, criterion, model, dirn1, dirn2, stepsize, stepsize, device, log=True)
     
-    np.save('2d'+args.modelname+'.npy', np.array([[loss], [accs], [x], [y]]))
+    # get filename from weight_path
+    filename=args.weight_path.split('/')[-1].split('.')[0]
+    np.save('vis-'+filename+'.npy', np.array([[loss], [accs], [x], [y]]))
     
     ax = plt.axes(projection='3d')
     ax.plot_surface(x, y, loss)
@@ -98,15 +100,10 @@ if __name__ == "__main__":
     nprocs = torch.cuda.device_count()
     workers = []
 
-    model = give_model('weights/' + args.weightpath, 'cpu')
+    model = load_model_with_weights(args.weight_path, 'cpu')
     criterion = nn.CrossEntropyLoss()
 
-    if "noshort" in args.modelname:
-        block = BasicBlockNoShort
-    else:
-        block = BasicBlock
-
-    dirn1 = ResNet(block, [9,9,9])
+    dirn1 = give_model(args)
     # dirn1.to(device)
     for param, m_param in zip(dirn1.parameters(), model.parameters()):
         if(len(m_param.shape) == 1):
@@ -116,7 +113,7 @@ if __name__ == "__main__":
         param.data = param.data / torch.linalg.norm(param.data)
         param.data *= m_param
 
-    dirn2 = ResNet(block, [9,9,9])
+    dirn2 = give_model(args)
     # dirn2.to(device)
     for param, m_param in zip(dirn2.parameters(), model.parameters()):
         if(len(m_param.shape) == 1):

@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from models.resnet import ResNet, BasicBlock, BasicBlockNoShort
+from models import give_model
 from data import load_cifar10
 import os
 from torch.distributed import init_process_group, destroy_process_group
@@ -15,10 +15,11 @@ import torch.multiprocessing as mp
 import time
 import argparse
 
-parser = argparse.ArgumentParser(description='Train a ResNet model on CIFAR10')
+parser = argparse.ArgumentParser(description='Train a model on CIFAR10')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train for')
 parser.add_argument('--batch_size', type=int, default=128, help='Batch size')
-parser.add_argument('--short', action='store_true', help='Use the short version of ResNet')
+parser.add_argument('--mname', type=str, help='Name of the model',required=True)
+parser.add_argument('--margs', type=str, default="", help='Arguments for the model')
 
 def setup(rank, args):
     # Ininitalizes the process_group and makes this process a part of that group. 
@@ -37,14 +38,11 @@ def train(rank, args):
     # Create the ResNet model and optimizer
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    if(args.short):
-        model = ResNet(BasicBlock, [9,9,9]).to(device)
-    else:
-        model = ResNet(BasicBlockNoShort, [9,9,9]).to(device)
+    model = give_model(args).to(device)
     # Create a DDP instance
     model.to(rank)
     model = DDP(model, device_ids=[rank])
-    model_unique_id = f"resnet-{'short' if args.short else 'noshort'}-{args.batch_size}-{args.epochs}epochs"
+    model_unique_id = f"{model.get_unique_id()}-{args.batch_size}-{args.epochs}epochs"
     optimizer = optim.Adam(model.parameters(), lr=0.1)
     # Training loop
     num_epochs = args.epochs
