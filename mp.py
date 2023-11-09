@@ -18,8 +18,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Train a model on CIFAR10')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train for')
 parser.add_argument('--batch_size', type=int, default=128, help='Batch size')
-parser.add_argument('--mname', type=str, help='Name of the model',required=True)
-parser.add_argument('--margs', type=str, default="", help='Arguments for the model')
+parser.add_argument('--model', type=str, help='Name of the model',required=True)
 
 def setup(rank, args):
     # Ininitalizes the process_group and makes this process a part of that group. 

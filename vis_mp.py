@@ -19,8 +19,7 @@ import torch.multiprocessing as mp
 parser = argparse.ArgumentParser()
 
 parser.add_argument('weight_path', type=str, help='Path to the weights file')
-parser.add_argument('--mname', type=str, help='Name of the model',required=True)
-parser.add_argument('--margs', type=str, default="", help='Arguments for the model')
+parser.add_argument('--model', type=str, help='Name of the model',required=True)
 
 def load_model_with_weights(path, device):
     model_init = torch.load(path, map_location=device)
