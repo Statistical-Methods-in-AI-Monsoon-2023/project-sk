@@ -37,11 +37,12 @@ class VGG(nn.Module):
     def __init__(self, margs = "11", num_classes: int = 1000) -> None:
         super(VGG, self).__init__()
         
-        margs = margs.split(",")
-        self.vgg_id = "vgg"+str(margs[0])
-        self.batch_norm = False
-        if len(margs) > 1:
-            self.batch_norm = True if margs[1] == "bn" else False
+        """
+        margs example: "11" or "11-bn"
+        """
+        margs = margs.split("-")
+        self.vgg_id = "vgg"+margs[0]
+        self.batch_norm = True if "bn" in margs else False
         if self.vgg_id not in vgg_cfgs:
             raise ValueError(f"Invalid config. Valid options are {list(vgg_cfgs.keys())}")
         vgg_cfg = vgg_cfgs[self.vgg_id]

@@ -63,10 +63,7 @@ def train(rank, args):
             if batch_idx % 100 == 0:
                 print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
     if(rank == 0):
-        if(args.short):
-            torch.save(model.module, f"weights/{model_unique_id}.pt")
-        else:
-            torch.save(model.module, f"weights/{model_unique_id}.pt")
+        torch.save(model.module, f"weights/{model_unique_id}.pt")
 
     # Test the model
     model.eval()
