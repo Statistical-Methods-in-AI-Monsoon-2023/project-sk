@@ -18,7 +18,9 @@ import argparse
 parser = argparse.ArgumentParser(description='Train a model on CIFAR10')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train for')
 parser.add_argument('--batch_size', type=int, default=128, help='Batch size')
+parser.add_argument('--save_every', type=int, default=-1, help='Batch size')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
+
 
 def setup(rank, args):
     # Ininitalizes the process_group and makes this process a part of that group. 
@@ -62,9 +64,12 @@ def train(rank, args):
         
             if batch_idx % 100 == 0:
                 print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
+        
+        if(rank == 0):
+            if(epoch % args.save_every == 0 and args.save_every != -1):
+                torch.save(model.module, f"weights/{model_unique_id}/{epoch}.pt")
     if(rank == 0):
         torch.save(model.module, f"weights/{model_unique_id}.pt")
-
     # Test the model
     model.eval()
     test_loss = 0
