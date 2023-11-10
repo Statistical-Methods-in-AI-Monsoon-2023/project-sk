@@ -1,0 +1,176 @@
+# Outputs the eigenvalues of the hessian matrix at every point of the loss landscape
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torchvision
+from torchvision.datasets import MNIST
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+import torchvision.models as models
+import torch.nn.functional as F
+import copy
+import matplotlib.pyplot as plt
+from models.resnet import ResNet, BasicBlock, BasicBlockNoShort
+from visfuncs  import interpolate, move1D, move2D
+from data import load_cifar10
+import numpy as np
+import argparse
+import torch.multiprocessing as mp
+from scipy.sparse.linalg import LinearOperator, eigsh
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('modelname')
+parser.add_argument('weightpath')
+
+
+def give_model(path, device):
+    model_init = torch.load(path, map_location=device)
+    try:
+        net = ResNet(BasicBlockNoShort, [9,9,9])
+        net.load_state_dict(model_init['state_dict'])
+        net.eval()
+        return net
+    except:
+        pass
+    model_init.eval()
+
+    return model_init
+
+@torch.no_grad()
+def give_minmax_eigs(dataloader, model, criterion, device):
+    '''
+    dataloader is a torch.Dataloader instance
+    criterion is the loss function
+    model is the model architecture with its parameters
+    device is the device on which this code is running on
+
+    returns the min and max eigenvalues
+    '''
+
+    def hess_transform(v):
+        # Computes H @ v, (v is an arbitrary vector)
+        # v is a numpy array, first convert to tensor of the same shape as the model parameters
+        v_tensor = torch.from_numpy(v)
+        v_ten = []
+        total_len = 0
+        for param in model.parameters():
+            param_len = param.reshape(-1).shape[0]
+            v_ten.append(v_tensor[total_len:total_len+param_len].reshape(param.shape))
+            total_len += param_len
+        
+        # v_ten is the same format as the model.params() list
+        accum_transform = torch.zeros(1, requires_grad=True)
+
+        # model.eval()
+        model.zero_grad()
+
+        # params = [param for param in model.parameters()] 
+        for inputs, labels in dataloader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            out = model(inputs)
+            loss = criterion(out, labels)
+            print("yoyo")
+            loss.backward()
+            print("hi")
+            grads = torch.autograd.grad(outputs = loss, inputs = model.parameters(), create_graph=True)
+
+            # Simluate the dot product of the gradient with the v_ten elements
+            for param_grad, param_vec in zip(grads, v_ten):
+                accum_transform += param_grad*param_vec
+            
+            # Keep on adding the gradients for the full dataset
+            accum_transform.backward()
+        
+        final_transform = [param.grad.reshape(-1) for param in model.parameters()]
+        
+        return torch.cat(final_transform).numpy()
+    
+    param_len = sum(param.reshape(-1).shape[0] for param in model.parameters())
+    # H = LinearOperator((param_len, param_len), matvec=hess_transform)
+    hess_transform(np.random.randn(param_len))
+    eigs, eigvec = eigsh(H, k = 1)
+    print(eigs)
+
+
+def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output):
+
+    model.to(rank)
+    vis_model = copy.deepcopy(model)
+    dirn1.to(rank)
+    dirn2.to(rank)
+    train_loader, _ = load_cifar10(128, 2)
+    # print(vis_model.parameters().is_cuda())
+    for s, step in enumerate(steps):
+        # idx is [a, b]
+        a, b = step
+        for i, d1, d2, k in zip(model.parameters(), dirn1.parameters(), dirn2.parameters(), vis_model.parameters()):
+                k.data = i.data + a*d1.data + b*d2.data
+        min_eig, max_eig = give_minmax_eigs(train_loader, vis_model, criterion, rank)
+        print(f"GPU {rank} : Min Eig {min_eig}, Max Eig {max_eig}")
+        output[indices[s], 0] = min_eig
+        output[indices[s], 1] = max_eig
+
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    nprocs = torch.cuda.device_count()
+    workers = []
+
+    model = give_model('weights/' + args.weightpath, 'cpu')
+    criterion = nn.CrossEntropyLoss()
+
+    if "noshort" in args.modelname:
+        block = BasicBlockNoShort
+    else:
+        block = BasicBlock
+
+    dirn1 = ResNet(block, [9,9,9])
+    # dirn1.to(device)
+    for param, m_param in zip(dirn1.parameters(), model.parameters()):
+        if(len(m_param.shape) == 1):
+            param = m_param
+            continue
+        param.data = torch.randn_like(param.data)
+        param.data = param.data / torch.linalg.norm(param.data)
+        param.data *= m_param
+
+    dirn2 = ResNet(block, [9,9,9])
+    # dirn2.to(device)
+    for param, m_param in zip(dirn2.parameters(), model.parameters()):
+        if(len(m_param.shape) == 1):
+            param = m_param
+            continue
+        param.data = torch.randn_like(param.data)
+        param.data = param.data / torch.linalg.norm(param.data)
+        param.data *= m_param 
+
+    alpha = torch.linspace(-1, 1, 20)
+    beta = torch.linspace(-1, 1, 20)
+    mesh_x, mesh_y = torch.meshgrid(alpha, beta)
+    mesh = torch.cat([mesh_x.unsqueeze(0), mesh_y.unsqueeze(0)], 0).permute(1, 2, 0).reshape(-1, 2)
+    
+    num_per_proc = mesh.shape[0] // nprocs
+    steps = [mesh[i*num_per_proc:(i+1)*num_per_proc, :] for i in range(nprocs-1)]
+    steps.append(mesh[(nprocs-1)*(num_per_proc):, :])
+    indices = [torch.arange(i*num_per_proc, (i+1)*num_per_proc) for i in range(nprocs-1)]
+    indices.append(torch.arange((nprocs-1)*num_per_proc, mesh.shape[0]))
+
+    # Min And Max Eigenvalues
+    output = torch.zeros(mesh.shape[0], 2)
+    output.share_memory_()
+
+    mp.set_start_method('spawn', force=True)
+
+    for i in range(nprocs):
+        p = mp.Process(target=vis, args=[i, model, dirn1, dirn2, criterion, steps[i], indices[i], output])
+        p.start()
+        workers.append(p)
+
+    for i in range(nprocs):
+        workers[i].join()
+
+    output = output.reshape((mesh_x.shape[0], mesh_y.shape[0], 2)).numpy()
+    np.save("2dsave.npy", np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
