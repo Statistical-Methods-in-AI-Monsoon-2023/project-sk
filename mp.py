@@ -51,7 +51,8 @@ def train(rank, args):
     t1 = time.time()
 
     if(args.save_every != -1):
-        os.makedirs(f'weights/{model_unique_id}')
+        os.makedirs(f'weights/{model_unique_id}', exist_ok=True)
+
     for epoch in range(num_epochs):
         model.train()
         count = 0 
