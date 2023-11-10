@@ -18,6 +18,7 @@ import numpy as np
 import argparse
 import torch.multiprocessing as mp
 from scipy.sparse.linalg import LinearOperator, eigsh
+import time
 
 parser = argparse.ArgumentParser()
 
@@ -38,7 +39,7 @@ def give_model(path, device):
 
     return model_init
 
-@torch.no_grad()
+
 def give_minmax_eigs(dataloader, model, criterion, device):
     '''
     dataloader is a torch.Dataloader instance
@@ -52,18 +53,18 @@ def give_minmax_eigs(dataloader, model, criterion, device):
     def hess_transform(v):
         # Computes H @ v, (v is an arbitrary vector)
         # v is a numpy array, first convert to tensor of the same shape as the model parameters
-        v_tensor = torch.from_numpy(v)
+        v_tensor = torch.from_numpy(v).to(device)
         v_ten = []
         total_len = 0
+        t0 = time.time()
         for param in model.parameters():
             param_len = param.reshape(-1).shape[0]
             v_ten.append(v_tensor[total_len:total_len+param_len].reshape(param.shape))
             total_len += param_len
-        
+        print("Loop 1", time.time() - t0)
         # v_ten is the same format as the model.params() list
-        accum_transform = torch.zeros(1, requires_grad=True)
 
-        # model.eval()
+        model.eval()
         model.zero_grad()
 
         # params = [param for param in model.parameters()] 
@@ -71,25 +72,26 @@ def give_minmax_eigs(dataloader, model, criterion, device):
             inputs, labels = inputs.to(device), labels.to(device)
             out = model(inputs)
             loss = criterion(out, labels)
-            print("yoyo")
-            loss.backward()
-            print("hi")
+            t0 = time.time()
+            # Create graph is used to calculate higher order gradients
             grads = torch.autograd.grad(outputs = loss, inputs = model.parameters(), create_graph=True)
-
+            print("Loss 1", time.time() - t0)
+            t0 = time.time()
             # Simluate the dot product of the gradient with the v_ten elements
+            accum_transform = torch.zeros(1, requires_grad=True).to(device)
             for param_grad, param_vec in zip(grads, v_ten):
-                accum_transform += param_grad*param_vec
+                accum_transform += torch.sum(param_grad*param_vec)
+            print("Loop 2", time.time() - t0)
             
-            # Keep on adding the gradients for the full dataset
+            # Keep on adding the gradients for the full dataset (The gradients will be accumulated into .grad)
             accum_transform.backward()
         
         final_transform = [param.grad.reshape(-1) for param in model.parameters()]
         
-        return torch.cat(final_transform).numpy()
+        return torch.cat(final_transform).cpu().numpy()
     
     param_len = sum(param.reshape(-1).shape[0] for param in model.parameters())
-    # H = LinearOperator((param_len, param_len), matvec=hess_transform)
-    hess_transform(np.random.randn(param_len))
+    H = LinearOperator((param_len, param_len), matvec=hess_transform)
     eigs, eigvec = eigsh(H, k = 1)
     print(eigs)
 
@@ -122,12 +124,7 @@ if __name__ == "__main__":
     model = give_model('weights/' + args.weightpath, 'cpu')
     criterion = nn.CrossEntropyLoss()
 
-    if "noshort" in args.modelname:
-        block = BasicBlockNoShort
-    else:
-        block = BasicBlock
-
-    dirn1 = ResNet(block, [9,9,9])
+    dirn1 = ResNet(args.modelname, [9,9,9])
     # dirn1.to(device)
     for param, m_param in zip(dirn1.parameters(), model.parameters()):
         if(len(m_param.shape) == 1):
@@ -137,7 +134,7 @@ if __name__ == "__main__":
         param.data = param.data / torch.linalg.norm(param.data)
         param.data *= m_param
 
-    dirn2 = ResNet(block, [9,9,9])
+    dirn2 = ResNet(args.modelname, [9,9,9])
     # dirn2.to(device)
     for param, m_param in zip(dirn2.parameters(), model.parameters()):
         if(len(m_param.shape) == 1):
