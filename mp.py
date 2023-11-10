@@ -18,7 +18,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Train a model on CIFAR10')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train for')
 parser.add_argument('--batch_size', type=int, default=128, help='Batch size')
-parser.add_argument('--save_every', type=int, default=-1, help='Batch size')
+parser.add_argument('--save_every', type=int, default=-1, help='Save every save_every iterations')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
 
 
@@ -49,6 +49,9 @@ def train(rank, args):
     num_epochs = args.epochs
     count = 0
     t1 = time.time()
+
+    if(args.save_every != -1):
+        os.makedirs(f'weights/{model_unique_id}')
     for epoch in range(num_epochs):
         model.train()
         count = 0 
