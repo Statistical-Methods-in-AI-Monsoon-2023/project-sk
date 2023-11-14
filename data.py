@@ -4,6 +4,57 @@ import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import Dataset
+
+import os
+from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
+from PIL import Image
+
+class IDD(Dataset):
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = root_dir
+        self.transform = transform
+        self.file_list = [f for f in os.listdir(root_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
+
+    def __len__(self):
+        return len(self.file_list)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.root_dir, self.file_list[idx])
+        annot_file = os.path.join(self.root_dir, self.file_list[idx].split('.')[0]) + ".txt"
+        image = Image.open(img_name).convert('RGB')
+
+        f = open(annot_file)
+        annots = f.readlines()
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image
+    
+def load_idd(data_root, batch_size, num_workers, distributed=False):
+
+    # Define the transformations to be applied to the images
+    transform = transforms.Compose([
+        transforms.Resize((640, 640)),  # Adjust the size as needed
+        transforms.ToTensor(),
+    ])
+
+    # Create an instance of the CustomDataset
+    trainset = IDD(root_dir=data_root, transform=transform)    
+    kwargs = {'num_workers': num_workers, 'pin_memory': True}
+    train_sampler = None
+    test_sampler = None
+
+    if(distributed):
+        train_sampler = DistributedSampler(trainset)
+
+    # Create a DataLoader for batching and shuffling
+    data_loader = DataLoader(trainset, batch_size=batch_size, shuffle=False, **kwargs, sampler=train_sampler)
+    
+    return data_loader, None
+
 
 def load_mnist(batch_size):
     # Define data transforms
