@@ -1,7 +1,7 @@
 import { GUI } from 'GUI'
 import { world } from './world.js'
 import { reset_orbit_cam } from './controls.js'
-import { load_model_name, update_plot } from './scene.js'
+import { load_model_name, update_plot } from './plot.js'
 
 const gui_items = {
 	orbit_camera: () => {
