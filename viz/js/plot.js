@@ -40,36 +40,47 @@ function get_color(val) {
 	return from_color.lerpHSL(to_color, val)
 }
 
+function process_data1(data, x = 1, y = -1, z = 1) {
+	const surface = make_surface()
+	blend_surface(surface.mesh.geometry, data)
+	return surface
+}
+
+function normalize_inplace(data) {
+	const width = data.length, height = data[0].length
+	let max_x = 0, max_y = 0, max_z = 0
+	let min_x = Infinity, min_y = Infinity, min_z = Infinity
+	for (let x = 0; x < width; x++) {
+		for (let y = 0; y < height; y++) {
+			max_x = Math.max(max_x, data[x][y].x)
+			max_y = Math.max(max_y, data[x][y].y)
+			max_z = Math.max(max_z, data[x][y].z)
+			min_x = Math.min(min_x, data[x][y].x)
+			min_y = Math.min(min_y, data[x][y].y)
+			min_z = Math.min(min_z, data[x][y].z)
+		}
+	}
+
+	for (let x = 0; x < width; x++) {
+		for (let y = 0; y < height; y++) {
+			data[x][y].x = (data[x][y].x - min_x) / (max_x - min_x)
+			data[x][y].y = (data[x][y].y - min_y) / (max_y - min_y)
+			data[x][y].z = (data[x][y].z - min_z) / (max_z - min_z)
+		}
+	}
+}
+
 function process_data(data, x = 1, y = -1, z = 1) {
 	const geometry = new THREE.Geometry()
 	const colors = []
 
-	// console.log(data)
-
 	const width = data.length, height = data[0].length
-	let max_x = 0, max_y = 0, max_z = 0
-	let min_x = Infinity, min_y = Infinity, min_z = Infinity
+	normalize_inplace(data)
 
 	data.forEach(function (col) {
 		col.forEach(function (val) {
-			max_x = Math.max(max_x, val.x)
-			max_y = Math.max(max_y, val.y)
-			max_z = Math.max(max_z, val.z)
-			min_x = Math.min(min_x, val.x)
-			min_y = Math.min(min_y, val.y)
-			min_z = Math.min(min_z, val.z)
-		})
-	})
-	// console.log(max_x, max_y, max_z, min_x, min_y, min_z)
-
-	data.forEach(function (col) {
-		col.forEach(function (val) {
-			geometry.vertices.push(new THREE.Vector3(
-				(val.x - min_x) / (max_x - min_x) * x,
-				(val.y - min_y) / (max_y - min_y) * y,
-				(val.z - min_z) / (max_z - min_z) * z,
-			))
-			colors.push(get_color((val.z - min_z) / (max_z - min_z) * z))
+			geometry.vertices.push(new THREE.Vector3(val.x * x, val.y * y, val.z * z))
+			colors.push(get_color(val.z * z))
 		})
 	})
 
@@ -124,13 +135,72 @@ function process_data(data, x = 1, y = -1, z = 1) {
 	return {
 		mesh,
 		wireframe,
-		extents: { min_x, min_y, min_z, max_x, max_y, max_z }
 	}
 }
 
+function make_surface(width = 20, height = 20) {
+	const geometry = new THREE.Geometry()
+	const colors = []
 
-function make_surface(){
-	
+	for (let i = 0; i < width; i++) {
+		for (let j = 0; j < height; j++) {
+			geometry.vertices.push(new THREE.Vector3(i, j, 0))
+			colors.push(get_color(0))
+		}
+	}
+
+	const offset = (x, y) => x * width + y
+
+	for (let x = 0; x < width - 1; x++) {
+		for (let y = 0; y < height - 1; y++) {
+			const vec0 = new THREE.Vector3(), vec1 = new THREE.Vector3(), n_vec = new THREE.Vector3()
+			// one of two triangle polygons in one rectangle
+			vec0.subVectors(geometry.vertices[offset(x, y)], geometry.vertices[offset(x + 1, y)])
+			vec1.subVectors(geometry.vertices[offset(x, y)], geometry.vertices[offset(x, y + 1)])
+			n_vec.crossVectors(vec0, vec1).normalize()
+			geometry.faces.push(new THREE.Face3(offset(x, y), offset(x + 1, y), offset(x, y + 1), n_vec, [colors[offset(x, y)], colors[offset(x + 1, y)], colors[offset(x, y + 1)]]))
+			// geometry.faces.push(new THREE.Face3(offset(x, y), offset(x, y + 1), offset(x + 1, y), n_vec.negate(), [colors[offset(x, y)], colors[offset(x, y + 1)], colors[offset(x + 1, y)]]))
+			// the other one
+			vec0.subVectors(geometry.vertices[offset(x + 1, y)], geometry.vertices[offset(x + 1, y + 1)])
+			vec1.subVectors(geometry.vertices[offset(x, y + 1)], geometry.vertices[offset(x + 1, y + 1)])
+			n_vec.crossVectors(vec0, vec1).normalize()
+			geometry.faces.push(new THREE.Face3(offset(x + 1, y), offset(x + 1, y + 1), offset(x, y + 1), n_vec, [colors[offset(x + 1, y)], colors[offset(x + 1, y + 1)], colors[offset(x, y + 1)]]))
+			// geometry.faces.push(new THREE.Face3(offset(x + 1, y), offset(x, y + 1), offset(x + 1, y + 1), n_vec.negate(), [colors[offset(x + 1, y)], colors[offset(x, y + 1)], colors[offset(x + 1, y + 1)]]))
+		}
+	}
+
+	const material = new THREE.MeshStandardMaterial({
+		vertexColors: THREE.VertexColors,
+	})
+
+	geometry.computeFaceNormals()
+	geometry.computeVertexNormals()
+
+	const mesh = new THREE.Mesh(geometry, material)
+	// rotate the mesh to correct position
+	mesh.rotation.x = -Math.PI / 2
+
+	// shadows
+	mesh.castShadow = true
+	mesh.receiveShadow = true
+
+	// make wireframe
+	const wireframe = new THREE.WireframeGeometry(geometry)
+	const line = new THREE.LineSegments(wireframe)
+	line.material.side = THREE.DoubleSide
+	line.material.opacity = 0.1
+	line.material.transparent = true
+	mesh.add(line)
+
+	mesh.material.side = THREE.DoubleSide
+	mesh.material.opacity = 0.9
+	mesh.material.transparent = true
+
+
+	return {
+		mesh,
+		wireframe,
+	}
 }
 
 function get_test_data() {
@@ -148,15 +218,15 @@ function get_test_data() {
 }
 
 function load_model_name() {
-	const { scene, plots,gui } = world
+	const { scene, plots, gui } = world
 	// scene.add(get_mesh(get_test_data()))
 	clear_plots()
 
 	fetch(world.model_path_prefix + world.active_model).then(e => e.json()).then(array => {
-		if(world.plotsFolder){
+		if (world.plotsFolder) {
 			world.plotsFolder.destroy()
 		}
-		world.plotsFolder= gui.addFolder("Plots")
+		world.plotsFolder = gui.addFolder("Plots")
 		let first = true
 		for (let data in array) {
 			plots[data] = {
@@ -191,8 +261,11 @@ function update_plot() {
 	}
 }
 
-function blend(geometry, data1, data2, alpha = 0.5) {
+function blend_surface(geometry, data1, data2, alpha = 0.5) {
 	const width = data1.length, height = data1[0].length
+	if (!data2) {
+		data2 = data1
+	}
 	// check if data1 and data2 have same shape
 	if (data2.length != width || data2[0].length != height) {
 		console.log("data1 and data2 have different shapes")
@@ -206,9 +279,11 @@ function blend(geometry, data1, data2, alpha = 0.5) {
 		}
 	}
 	geometry.verticesNeedUpdate = true
+	geometry.computeFaceNormals()
+	geometry.computeVertexNormals()
 }
 
-function add_minima_light(){
+function add_minima_light() {
 	const { scene } = world
 	// minimaLight
 	const minimaLight = new THREE.PointLight(0xffffff, 1, 100)
@@ -223,7 +298,7 @@ function add_minima_light(){
 	world.minimaLight = minimaLight
 }
 
-function add_plot(){
+function add_plot() {
 	add_grid()
 	add_minima_light()
 }
