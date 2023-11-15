@@ -14,23 +14,42 @@ function add_ground() {
 	ground.material.transparent = true
 	ground.material.side = THREE.DoubleSide
 	ground.material.opacity = 0.4
+	ground.castShadow = true
+	ground.receiveShadow = true
 
-	var axes = new THREE.AxesHelper(1);
-	scene.add(axes);
+	world.ground = ground
+}
 
-	var gridXZ = new THREE.GridHelper(1, 10);
-	gridXZ.position.set(0.5, 0, 0.5);
-	scene.add(gridXZ);
+function add_grid() {
+	const { scene } = world
 
-	var gridXY = new THREE.GridHelper(1, 10);
-	gridXY.position.set(0.5, 0.5, 0);
-	gridXY.rotation.x = Math.PI / 2;
-	scene.add(gridXY);
+	const grid_opacity = 0.5
 
-	var gridYZ = new THREE.GridHelper(1, 10);
-	gridYZ.position.set(0, 0.5, 0.5);
-	gridYZ.rotation.z = Math.PI / 2;
-	scene.add(gridYZ);
+	const grid = new THREE.Group()
+	var axes = new THREE.AxesHelper(1.2)
+	grid.add(axes)
+
+	var gridXZ = new THREE.GridHelper(1, 10)
+	gridXZ.position.set(0.5, 0, 0.5)
+	gridXZ.material.transparent = true
+	gridXZ.material.opacity = grid_opacity
+	grid.add(gridXZ)
+
+	var gridXY = new THREE.GridHelper(1, 10)
+	gridXY.position.set(0.5, 0.5, 0)
+	gridXY.rotation.x = Math.PI / 2
+	gridXY.material.transparent = true
+	gridXY.material.opacity = grid_opacity
+	grid.add(gridXY)
+
+	var gridYZ = new THREE.GridHelper(1, 10)
+	gridYZ.position.set(0, 0.5, 0.5)
+	gridYZ.rotation.z = Math.PI / 2
+	gridYZ.material.transparent = true
+	gridYZ.material.opacity = grid_opacity
+	grid.add(gridYZ)
+
+	scene.add(grid)
 }
 
 function get_color(val) {
@@ -39,13 +58,13 @@ function get_color(val) {
 	return from_color.lerpHSL(to_color, val)
 }
 
-function get_mesh(data, x = 1, y = -1, z = 1) {
-	var geometry = new THREE.Geometry();
-	var colors = [];
+function process_data(data, x = 1, y = -1, z = 1) {
+	const geometry = new THREE.Geometry();
+	const colors = [];
 
 	// console.log(data)
 
-	var width = data.length, height = data[0].length;
+	const width = data.length, height = data[0].length;
 	let max_x = 0, max_y = 0, max_z = 0
 	let min_x = Infinity, min_y = Infinity, min_z = Infinity
 
@@ -72,7 +91,7 @@ function get_mesh(data, x = 1, y = -1, z = 1) {
 		});
 	});
 
-	var offset = (x, y) => x * width + y
+	const offset = (x, y) => x * width + y
 
 	for (var x = 0; x < width - 1; x++) {
 		for (var y = 0; y < height - 1; y++) {
@@ -92,14 +111,25 @@ function get_mesh(data, x = 1, y = -1, z = 1) {
 		}
 	}
 
-	var material = new THREE.MeshLambertMaterial({ vertexColors: THREE.VertexColors });
-	var mesh = new THREE.Mesh(geometry, material);
+	const material = new THREE.MeshStandardMaterial({
+		vertexColors: THREE.VertexColors,
+	});
+
+	geometry.computeFaceNormals();
+	geometry.computeVertexNormals();
+
+	const mesh = new THREE.Mesh(geometry, material);
 	// rotate the mesh to correct position
 	mesh.rotation.x = -Math.PI / 2;
 
+	// shadows
+	mesh.castShadow = true
+	mesh.receiveShadow = true
+
 	// make wireframe
-	var wireframe = new THREE.WireframeGeometry(geometry);
-	var line = new THREE.LineSegments(wireframe);
+	const wireframe = new THREE.WireframeGeometry(geometry);
+	const line = new THREE.LineSegments(wireframe);
+	line.material.side = THREE.DoubleSide;
 	line.material.opacity = 0.1;
 	line.material.transparent = true;
 	mesh.add(line);
@@ -109,15 +139,19 @@ function get_mesh(data, x = 1, y = -1, z = 1) {
 	mesh.material.transparent = true;
 
 
-	return mesh;
+	return {
+		mesh,
+		wireframe,
+		extents: { min_x, min_y, min_z, max_x, max_y, max_z }
+	}
 }
 
 function get_test_data() {
-	var BIGIN = -10, END = 10;
+	var BEGIN = -10, END = 10;
 	var data = new Array();
-	for (var x = BIGIN; x < END; x++) {
+	for (var x = BEGIN; x < END; x++) {
 		var row = [];
-		for (var y = BIGIN; y < END; y++) {
+		for (var y = BEGIN; y < END; y++) {
 			const z = 2.5 * (Math.cos(Math.sqrt(x * x + y * y)) + 1);
 			row.push({ x: x, y: y, z: z });
 		}
@@ -127,15 +161,25 @@ function get_test_data() {
 }
 
 function load_model_name() {
-	const { scene, plots } = world
+	const { scene, plots,gui } = world
 	// scene.add(get_mesh(get_test_data()))
 	clear_plots()
 
 	fetch(world.model_path_prefix + world.active_model).then(e => e.json()).then(array => {
-		plots.loss.data = array.loss
-		plots.acc.data = array.acc
-		for (let plot in plots) {
-			plots[plot].mesh = get_mesh(plots[plot].data)
+		if(world.plotsFolder){
+			world.plotsFolder.destroy()
+		}
+		world.plotsFolder= gui.addFolder("Plots")
+		let first = true
+		for (let data in array) {
+			plots[data] = {
+				data: array[data],
+				processed: process_data(array[data]),
+				visible: first,
+			}
+			first = false
+			// add to folder
+			world.plotsFolder.add(plots[data], 'visible').name(data).onChange(update_plot)
 		}
 		update_plot()
 	})
@@ -144,8 +188,8 @@ function load_model_name() {
 function clear_plots() {
 	const { scene, plots } = world
 	for (let plot in plots) {
-		if (plots[plot].mesh) {
-			scene.remove(plots[plot].mesh)
+		if (plots[plot].processed?.mesh) {
+			scene.remove(plots[plot].processed.mesh)
 		}
 	}
 }
@@ -155,19 +199,77 @@ function update_plot() {
 	clear_plots()
 	for (let plot in plots) {
 		if (plots[plot].visible) {
-			scene.add(plots[plot].mesh)
+			scene.add(plots[plot].processed.mesh)
 		}
 	}
 }
 
+function blend(geometry, data1, data2, alpha = 0.5) {
+	const width = data1.length, height = data1[0].length
+	// check if data1 and data2 have same shape
+	if (data2.length != width || data2[0].length != height) {
+		console.log("data1 and data2 have different shapes")
+		return
+	}
+	const offset = (x, y) => x * width + y
+	for (var x = 0; x < width - 1; x++) {
+		for (var y = 0; y < height - 1; y++) {
+			// update vertex position, blend data1 and data2
+			geometry.vertices[offset(x, y)].z = data1[x][y] * alpha + data2[x][y] * (1 - alpha)
+		}
+	}
+	geometry.verticesNeedUpdate = true
+}
+
 function add_lights() {
 	const { scene } = world
-	const ambientLight = new THREE.AmbientLight(0xffffff, 5)
+	const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
 	scene.add(ambientLight)
+
+	// top light
+	const light = new THREE.DirectionalLight(0xffffff, 1)
+	light.position.set(-0.5, 2, -0.5)
+	scene.add(light)
+
+	// Set up shadow properties for the light
+	light.shadow.mapSize.width = 20
+	light.shadow.mapSize.height = 20
+	light.shadow.camera.near = 1
+	light.shadow.camera.far = 10
+	light.castShadow = true
+
+	// // add light helper
+	// const lightHelper = new THREE.DirectionalLightHelper(light)
+	// scene.add(lightHelper)
+
+	// // keep moving light in a circle of radius around (0,5,0)
+	// var angle = 0
+	// var radius = 0.1
+	// const light_move = () => {
+	// 	light.position.x = radius * Math.cos(angle)
+	// 	light.position.z = radius * Math.sin(angle)
+	// 	angle += 0.01
+	// }
+	// world.light_move = light_move
+
+	// setInterval(light_move, 10)
+
+	// minimaLight
+	const minimaLight = new THREE.PointLight(0xffffff, 1, 100)
+	// x, y at center of plot
+	minimaLight.position.set(0.5, 0.1, 0.5)
+	scene.add(minimaLight)
+
+	// // add light helper
+	// const minimaLightHelper = new THREE.PointLightHelper(minimaLight, 0.1);
+	// scene.add(minimaLightHelper);
+
+	world.minimaLight = minimaLight
 }
 
 function build_scene() {
 	add_ground()
+	add_grid()
 	load_model_name()
 }
 

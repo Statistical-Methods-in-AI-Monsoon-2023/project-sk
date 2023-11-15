@@ -21,12 +21,12 @@ const world = {
 	plots:{
 		loss: {
 			data: null,
-			mesh: null,
+			processed: null,
 			visible: true,
 		},
 		acc: {
 			data: null,
-			mesh: null,
+			processed: null,
 			visible: false,
 		}
 	},
@@ -37,5 +37,7 @@ const world = {
 
 const globals = {
 }
+
+window.world = world
 
 export { world, globals }
