@@ -17,7 +17,7 @@ const world = {
 	},
 	textures: {
 	},
-	multiple_plots: true,
+	multiple_plots: false,
 	blend_plot: {
 		data: null,
 		processed: null,
