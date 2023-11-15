@@ -44,8 +44,8 @@ function add_lights() {
 	// scene.add(lightHelper)
 
 	// // keep moving light in a circle of radius around (0,5,0)
-	// var angle = 0
-	// var radius = 0.1
+	// let angle = 0
+	// let radius = 0.1
 	// const light_move = () => {
 	// 	light.position.x = radius * Math.cos(angle)
 	// 	light.position.z = radius * Math.sin(angle)

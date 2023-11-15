@@ -7,23 +7,23 @@ function add_grid() {
 	const grid_opacity = 0.5
 
 	const grid = new THREE.Group()
-	var axes = new THREE.AxesHelper(1.2)
+	const axes = new THREE.AxesHelper(1.2)
 	grid.add(axes)
 
-	var gridXZ = new THREE.GridHelper(1, 10)
+	const gridXZ = new THREE.GridHelper(1, 10)
 	gridXZ.position.set(0.5, 0, 0.5)
 	gridXZ.material.transparent = true
 	gridXZ.material.opacity = grid_opacity
 	grid.add(gridXZ)
 
-	var gridXY = new THREE.GridHelper(1, 10)
+	const gridXY = new THREE.GridHelper(1, 10)
 	gridXY.position.set(0.5, 0.5, 0)
 	gridXY.rotation.x = Math.PI / 2
 	gridXY.material.transparent = true
 	gridXY.material.opacity = grid_opacity
 	grid.add(gridXY)
 
-	var gridYZ = new THREE.GridHelper(1, 10)
+	const gridYZ = new THREE.GridHelper(1, 10)
 	gridYZ.position.set(0, 0.5, 0.5)
 	gridYZ.rotation.z = Math.PI / 2
 	gridYZ.material.transparent = true
@@ -41,12 +41,12 @@ function get_color(val) {
 }
 
 function process_data(data, x = 1, y = -1, z = 1) {
-	const geometry = new THREE.Geometry();
-	const colors = [];
+	const geometry = new THREE.Geometry()
+	const colors = []
 
 	// console.log(data)
 
-	const width = data.length, height = data[0].length;
+	const width = data.length, height = data[0].length
 	let max_x = 0, max_y = 0, max_z = 0
 	let min_x = Infinity, min_y = Infinity, min_z = Infinity
 
@@ -68,57 +68,57 @@ function process_data(data, x = 1, y = -1, z = 1) {
 				(val.x - min_x) / (max_x - min_x) * x,
 				(val.y - min_y) / (max_y - min_y) * y,
 				(val.z - min_z) / (max_z - min_z) * z,
-			));
-			colors.push(get_color((val.z - min_z) / (max_z - min_z) * z));
-		});
-	});
+			))
+			colors.push(get_color((val.z - min_z) / (max_z - min_z) * z))
+		})
+	})
 
 	const offset = (x, y) => x * width + y
 
-	for (var x = 0; x < width - 1; x++) {
-		for (var y = 0; y < height - 1; y++) {
-			var vec0 = new THREE.Vector3(), vec1 = new THREE.Vector3(), n_vec = new THREE.Vector3();
+	for (let x = 0; x < width - 1; x++) {
+		for (let y = 0; y < height - 1; y++) {
+			const vec0 = new THREE.Vector3(), vec1 = new THREE.Vector3(), n_vec = new THREE.Vector3()
 			// one of two triangle polygons in one rectangle
-			vec0.subVectors(geometry.vertices[offset(x, y)], geometry.vertices[offset(x + 1, y)]);
-			vec1.subVectors(geometry.vertices[offset(x, y)], geometry.vertices[offset(x, y + 1)]);
-			n_vec.crossVectors(vec0, vec1).normalize();
-			geometry.faces.push(new THREE.Face3(offset(x, y), offset(x + 1, y), offset(x, y + 1), n_vec, [colors[offset(x, y)], colors[offset(x + 1, y)], colors[offset(x, y + 1)]]));
-			// geometry.faces.push(new THREE.Face3(offset(x, y), offset(x, y + 1), offset(x + 1, y), n_vec.negate(), [colors[offset(x, y)], colors[offset(x, y + 1)], colors[offset(x + 1, y)]]));
+			vec0.subVectors(geometry.vertices[offset(x, y)], geometry.vertices[offset(x + 1, y)])
+			vec1.subVectors(geometry.vertices[offset(x, y)], geometry.vertices[offset(x, y + 1)])
+			n_vec.crossVectors(vec0, vec1).normalize()
+			geometry.faces.push(new THREE.Face3(offset(x, y), offset(x + 1, y), offset(x, y + 1), n_vec, [colors[offset(x, y)], colors[offset(x + 1, y)], colors[offset(x, y + 1)]]))
+			// geometry.faces.push(new THREE.Face3(offset(x, y), offset(x, y + 1), offset(x + 1, y), n_vec.negate(), [colors[offset(x, y)], colors[offset(x, y + 1)], colors[offset(x + 1, y)]]))
 			// the other one
-			vec0.subVectors(geometry.vertices[offset(x + 1, y)], geometry.vertices[offset(x + 1, y + 1)]);
-			vec1.subVectors(geometry.vertices[offset(x, y + 1)], geometry.vertices[offset(x + 1, y + 1)]);
-			n_vec.crossVectors(vec0, vec1).normalize();
-			geometry.faces.push(new THREE.Face3(offset(x + 1, y), offset(x + 1, y + 1), offset(x, y + 1), n_vec, [colors[offset(x + 1, y)], colors[offset(x + 1, y + 1)], colors[offset(x, y + 1)]]));
-			// geometry.faces.push(new THREE.Face3(offset(x + 1, y), offset(x, y + 1), offset(x + 1, y + 1), n_vec.negate(), [colors[offset(x + 1, y)], colors[offset(x, y + 1)], colors[offset(x + 1, y + 1)]]));
+			vec0.subVectors(geometry.vertices[offset(x + 1, y)], geometry.vertices[offset(x + 1, y + 1)])
+			vec1.subVectors(geometry.vertices[offset(x, y + 1)], geometry.vertices[offset(x + 1, y + 1)])
+			n_vec.crossVectors(vec0, vec1).normalize()
+			geometry.faces.push(new THREE.Face3(offset(x + 1, y), offset(x + 1, y + 1), offset(x, y + 1), n_vec, [colors[offset(x + 1, y)], colors[offset(x + 1, y + 1)], colors[offset(x, y + 1)]]))
+			// geometry.faces.push(new THREE.Face3(offset(x + 1, y), offset(x, y + 1), offset(x + 1, y + 1), n_vec.negate(), [colors[offset(x + 1, y)], colors[offset(x, y + 1)], colors[offset(x + 1, y + 1)]]))
 		}
 	}
 
 	const material = new THREE.MeshStandardMaterial({
 		vertexColors: THREE.VertexColors,
-	});
+	})
 
-	geometry.computeFaceNormals();
-	geometry.computeVertexNormals();
+	geometry.computeFaceNormals()
+	geometry.computeVertexNormals()
 
-	const mesh = new THREE.Mesh(geometry, material);
+	const mesh = new THREE.Mesh(geometry, material)
 	// rotate the mesh to correct position
-	mesh.rotation.x = -Math.PI / 2;
+	mesh.rotation.x = -Math.PI / 2
 
 	// shadows
 	mesh.castShadow = true
 	mesh.receiveShadow = true
 
 	// make wireframe
-	const wireframe = new THREE.WireframeGeometry(geometry);
-	const line = new THREE.LineSegments(wireframe);
-	line.material.side = THREE.DoubleSide;
-	line.material.opacity = 0.1;
-	line.material.transparent = true;
-	mesh.add(line);
+	const wireframe = new THREE.WireframeGeometry(geometry)
+	const line = new THREE.LineSegments(wireframe)
+	line.material.side = THREE.DoubleSide
+	line.material.opacity = 0.1
+	line.material.transparent = true
+	mesh.add(line)
 
-	mesh.material.side = THREE.DoubleSide;
-	mesh.material.opacity = 0.9;
-	mesh.material.transparent = true;
+	mesh.material.side = THREE.DoubleSide
+	mesh.material.opacity = 0.9
+	mesh.material.transparent = true
 
 
 	return {
@@ -128,18 +128,23 @@ function process_data(data, x = 1, y = -1, z = 1) {
 	}
 }
 
+
+function make_surface(){
+	
+}
+
 function get_test_data() {
-	var BEGIN = -10, END = 10;
-	var data = new Array();
-	for (var x = BEGIN; x < END; x++) {
-		var row = [];
-		for (var y = BEGIN; y < END; y++) {
-			const z = 2.5 * (Math.cos(Math.sqrt(x * x + y * y)) + 1);
-			row.push({ x: x, y: y, z: z });
+	const BEGIN = -10, END = 10
+	const data = new Array()
+	for (let x = BEGIN; x < END; x++) {
+		const row = []
+		for (let y = BEGIN; y < END; y++) {
+			const z = 2.5 * (Math.cos(Math.sqrt(x * x + y * y)) + 1)
+			row.push({ x: x, y: y, z: z })
 		}
-		data.push(row);
+		data.push(row)
 	}
-	return data;
+	return data
 }
 
 function load_model_name() {
@@ -194,8 +199,8 @@ function blend(geometry, data1, data2, alpha = 0.5) {
 		return
 	}
 	const offset = (x, y) => x * width + y
-	for (var x = 0; x < width - 1; x++) {
-		for (var y = 0; y < height - 1; y++) {
+	for (let x = 0; x < width - 1; x++) {
+		for (let y = 0; y < height - 1; y++) {
 			// update vertex position, blend data1 and data2
 			geometry.vertices[offset(x, y)].z = data1[x][y] * alpha + data2[x][y] * (1 - alpha)
 		}
@@ -212,8 +217,8 @@ function add_minima_light(){
 	scene.add(minimaLight)
 
 	// // add light helper
-	// const minimaLightHelper = new THREE.PointLightHelper(minimaLight, 0.1);
-	// scene.add(minimaLightHelper);
+	// const minimaLightHelper = new THREE.PointLightHelper(minimaLight, 0.1)
+	// scene.add(minimaLightHelper)
 
 	world.minimaLight = minimaLight
 }
