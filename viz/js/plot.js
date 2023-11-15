@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { world } from './world.js'
+import { get_pretty_name } from './gui.js'
 
 function add_grid() {
 	const { scene } = world
@@ -33,20 +34,21 @@ function add_grid() {
 	scene.add(grid)
 }
 
-
 function get_color(val) {
 	const from_color = new THREE.Color('brown')
 	const to_color = new THREE.Color('red')
 	return from_color.lerpHSL(to_color, val)
 }
 
-function process_data1(data, x = 1, y = -1, z = 1) {
-	const surface = make_surface()
-	blend_surface(surface.mesh.geometry, data)
-	return surface
+function process_data(data) {
+	const width = data.length, height = data[0].length
+	const mesh = make_mesh(width, height)
+	normalize(data)
+	blend_mesh(mesh.geometry, data)
+	return { mesh, width, height }
 }
 
-function normalize_inplace(data) {
+function normalize(data) {
 	const width = data.length, height = data[0].length
 	let max_x = 0, max_y = 0, max_z = 0
 	let min_x = Infinity, min_y = Infinity, min_z = Infinity
@@ -68,14 +70,16 @@ function normalize_inplace(data) {
 			data[x][y].z = (data[x][y].z - min_z) / (max_z - min_z)
 		}
 	}
+	// console.log("max_x", max_x, "max_y", max_y, "max_z", max_z)
+	// console.log("min_x", min_x, "min_y", min_y, "min_z", min_z)
 }
 
-function process_data(data, x = 1, y = -1, z = 1) {
+function process_data2(data, x = 1, y = -1, z = 1) {
 	const geometry = new THREE.Geometry()
 	const colors = []
 
 	const width = data.length, height = data[0].length
-	normalize_inplace(data)
+	normalize(data)
 
 	data.forEach(function (col) {
 		col.forEach(function (val) {
@@ -138,7 +142,7 @@ function process_data(data, x = 1, y = -1, z = 1) {
 	}
 }
 
-function make_surface(width = 20, height = 20) {
+function make_mesh(width = 20, height = 20) {
 	const geometry = new THREE.Geometry()
 	const colors = []
 
@@ -179,14 +183,14 @@ function make_surface(width = 20, height = 20) {
 	const mesh = new THREE.Mesh(geometry, material)
 	// rotate the mesh to correct position
 	mesh.rotation.x = -Math.PI / 2
+	mesh.rotation.z = -Math.PI / 2
 
 	// shadows
 	mesh.castShadow = true
 	mesh.receiveShadow = true
 
 	// make wireframe
-	const wireframe = new THREE.WireframeGeometry(geometry)
-	const line = new THREE.LineSegments(wireframe)
+	const line = new THREE.LineSegments(geometry)
 	line.material.side = THREE.DoubleSide
 	line.material.opacity = 0.1
 	line.material.transparent = true
@@ -196,11 +200,7 @@ function make_surface(width = 20, height = 20) {
 	mesh.material.opacity = 0.9
 	mesh.material.transparent = true
 
-
-	return {
-		mesh,
-		wireframe,
-	}
+	return mesh
 }
 
 function get_test_data() {
@@ -218,27 +218,52 @@ function get_test_data() {
 }
 
 function load_model_name() {
-	const { scene, plots, gui } = world
+	const { scene, plots, gui, blend_plot } = world
 	// scene.add(get_mesh(get_test_data()))
-	clear_plots()
 
 	fetch(world.model_path_prefix + world.active_model).then(e => e.json()).then(array => {
+		clear_plots()
 		if (world.plotsFolder) {
 			world.plotsFolder.destroy()
 		}
 		world.plotsFolder = gui.addFolder("Plots")
+		world.plotsFolder.add(world, 'multiple_plots').name("Multiple Plots").onChange(() => update_plot())
 		let first = true
-		for (let data in array) {
-			plots[data] = {
-				data: array[data],
-				processed: process_data(array[data]),
+		for (let plot_name in array) {
+			plots[plot_name] = {
+				data: array[plot_name],
+				processed: process_data(array[plot_name]),
 				visible: first,
 			}
-			first = false
+			if (first) {
+				if (!blend_plot.processed) {
+					blend_plot.data = array[plot_name]
+					blend_plot.processed = process_data(array[plot_name])
+					// blend_plot.processed.mesh.material.color = new THREE.Color('darkred')
+					scene.add(blend_plot.processed.mesh)
+				}
+				else if (plots[plot_name].processed.width != blend_plot.processed.width
+					|| plots[plot_name].processed.height != blend_plot.processed.height
+				) {
+					console.log("data have different shapes")
+					blend_plot.data = array[plot_name]
+					scene.remove(blend_plot.processed.mesh)
+					blend_plot.processed = process_data(array[plot_name])
+					// blend_plot.processed.mesh.material.color = new THREE.Color('darkred')
+					scene.add(blend_plot.processed.mesh)
+				} else {
+					console.log("data have same shapes")
+				}
+				first = false
+				world.active_plot = plot_name
+			}
 			// add to folder
-			world.plotsFolder.add(plots[data], 'visible').name(data).onChange(update_plot)
+			world.plotsFolder.add(plots[plot_name], 'visible')
+				.name(get_pretty_name(plot_name))
+				.onChange(() => update_plot(plot_name))
+				.listen()
 		}
-		update_plot()
+		update_plot(world.active_plot)
 	})
 }
 
@@ -249,19 +274,80 @@ function clear_plots() {
 			scene.remove(plots[plot].processed.mesh)
 		}
 	}
-}
-
-function update_plot() {
-	const { scene, plots } = world
-	clear_plots()
-	for (let plot in plots) {
-		if (plots[plot].visible) {
-			scene.add(plots[plot].processed.mesh)
-		}
+	if (world.blend_plot.processed) {
+		world.blend_plot.processed.mesh.visible = false
 	}
 }
 
-function blend_surface(geometry, data1, data2, alpha = 0.5) {
+function update_plot(plot_name) {
+	const { scene, plots, blend_plot } = world
+	clear_plots()
+	blend_plot.processed.mesh.visible = !world.multiple_plots
+	if (world.multiple_plots) {
+		let count = 0
+		for (let plot in plots) {
+			if (plots[plot].visible) {
+				scene.add(plots[plot].processed.mesh)
+				world.active_plot = plot
+				count++
+			}
+		}
+		if (count == 1) {
+			blend_plot.data = plots[world.active_plot].data
+		}
+		return
+	}
+	for (let plot in plots) {
+		if (plots[plot].visible) {
+			plot_name ||= plot
+			plots[plot].visible = false
+		}
+	}
+	plot_name ||= Object.keys(plots)[0]
+	if (!plot_name) {
+		return
+	}
+
+	plots[plot_name].visible = true
+	world.active_plot = plots[plot_name]
+	swap_plot(plot_name)
+}
+
+function swap_plot(plot_name) {
+	const { plots, blend_plot } = world
+	const plot = plots[plot_name]
+	if (plot.processed.width != blend_plot.processed.width
+		|| plot.processed.height != blend_plot.processed.height) {
+		console.log("data have different shapes")
+		return
+	}
+	blend_mesh_animate(plot.data)
+}
+
+function blend_mesh_animate(data) {
+	const { blend_plot } = world
+	let alpha = 0
+	blend_plot.processed.mesh.visible = true
+	// check if data1 and data2 have same shape
+	if (blend_plot.data.length != data.length || blend_plot.data[0].length != data[0].length) {
+		console.log("data1 and data2 have different shapes")
+		return
+	}
+	cancelAnimationFrame(world.blend_plot.frameId)
+	const old_data=blend_plot.data
+	function animate() {
+		if (alpha < 1) {
+			alpha += 0.01
+			blend_mesh(blend_plot.processed.mesh.geometry, data, old_data, alpha)
+			world.blend_plot.frameId = requestAnimationFrame(animate)
+		} else {
+			blend_plot.data = data
+		}
+	}
+	animate()
+}
+
+function blend_mesh(geometry, data1, data2, alpha = 0.5) {
 	const width = data1.length, height = data1[0].length
 	if (!data2) {
 		data2 = data1
@@ -272,10 +358,12 @@ function blend_surface(geometry, data1, data2, alpha = 0.5) {
 		return
 	}
 	const offset = (x, y) => x * width + y
-	for (let x = 0; x < width - 1; x++) {
-		for (let y = 0; y < height - 1; y++) {
+	for (let x = 0; x < width; x++) {
+		for (let y = 0; y < height; y++) {
 			// update vertex position, blend data1 and data2
-			geometry.vertices[offset(x, y)].z = data1[x][y] * alpha + data2[x][y] * (1 - alpha)
+			geometry.vertices[offset(x, y)].x = data1[x][y].x * alpha + data2[x][y].x * (1 - alpha)
+			geometry.vertices[offset(x, y)].y = data1[x][y].y * alpha + data2[x][y].y * (1 - alpha)
+			geometry.vertices[offset(x, y)].z = data1[x][y].z * alpha + data2[x][y].z * (1 - alpha)
 		}
 	}
 	geometry.verticesNeedUpdate = true
