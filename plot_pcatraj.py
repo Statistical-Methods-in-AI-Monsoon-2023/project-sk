@@ -92,7 +92,7 @@ def plot_pca_traj(args):
     pca.fit(diff_concats)
     eigvecs = pca.components_
 
-    if "noshort" in args.modelname:
+    if "noshort" in args.weights:
         block = BasicBlockNoShort
     else:
         block = BasicBlock
@@ -142,6 +142,16 @@ def plot_pca_traj(args):
     for i in range(nprocs):
         workers[i].join()
 
+    loss = output[:, 0].reshape(mesh_x.shape)
+    acc = output[:, 1].reshape(mesh_x.shape)
+
+    plt.figure()
+    plt.contourf(mesh_x, mesh_y, loss, 20)
+    plt.colorbar()
+    plt.xlabel("alpha")
+    plt.ylabel("beta")
+    plt.title("Loss Contour")
+    plt.savefig("loss_contour.png")
             
 
 if __name__ == "__main__":

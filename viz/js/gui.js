@@ -1,7 +1,7 @@
 import { GUI } from 'GUI'
 import { world } from './world.js'
 import { reset_orbit_cam } from './controls.js'
-import { load_model_name, update_plot } from './scene.js'
+import { load_model_name } from './plot.js'
 
 const gui_items = {
 	orbit_camera: () => {
@@ -25,15 +25,11 @@ function init_gui() {
 	}
 
 	// select model option
-	gui.add(world, 'active_model', world.model_names).name('Choose Model')
-	.onChange(load_model_name)
+	gui.add(world, 'active_model', world.model_names)
+		.name('Choose Model')
+		.onChange(load_model_name)
 
-	const plots = gui.addFolder('Plots')
-	plots.open()
-	for(let plot in world.plots){
-		plots.add(world.plots[plot],'visible').name(get_pretty_name(plot))
-		.onChange(update_plot)
-	}
+	world.gui = gui
 }
 
-export { init_gui }
+export { init_gui, get_pretty_name }
