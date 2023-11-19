@@ -8,5 +8,7 @@
 	"2dshort128": "2dshort128.json",
 	"2dvgg_extended_plot": "2dvgg_extended_plot.json",
 	"2dvgg": "2dvgg.json",
-	"2d-short12": "2d-short128.json"
+	"2d-short12": "2d-short128.json",
+	"2dsave" : "2dsave.json",
+	"2d_noshort_128" : "2d_noshort_128.json"
 }
