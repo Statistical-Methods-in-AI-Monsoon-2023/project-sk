@@ -15,10 +15,11 @@ from data import load_cifar10
 import numpy as np
 import argparse
 import torch.multiprocessing as mp
+import os
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('weight_path', type=str, help='Path to the weights file')
+parser.add_argument('--weight_path', type=str, help='Path to the weights file')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
 
 def load_model_with_weights(path, device):
@@ -58,21 +59,6 @@ def give_loss_acc(dataloader, model, criterion, device):
     acc = corr / num
     return loss, acc
 
-def plot_loss_acc_move2D(model, dirn1, dirn2, criterion, dataloader, device):
-    stepsize = 20
-    loss, accs, x, y = move2D(dataloader, criterion, model, dirn1, dirn2, stepsize, stepsize, device, log=True)
-    
-    # get filename from weight_path
-    filename=args.weight_path.split('/')[-1].split('.')[0]
-    np.save('vis-'+filename+'.npy', np.array([[loss], [accs], [x], [y]]))
-    
-    ax = plt.axes(projection='3d')
-    ax.plot_surface(x, y, loss)
-    plt.show()
-    ax = plt.axes(projection='3d')
-    ax.plot_surface(x, y, accs)
-    plt.show()
-
 
 def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output):
 
@@ -81,12 +67,14 @@ def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output):
     dirn1.to(rank)
     dirn2.to(rank)
     train_loader, _ = load_cifar10(128, 2)
+
     # print(vis_model.parameters().is_cuda())
     for s, step in enumerate(steps):
         # idx is [a, b]
         a, b = step
         for i, d1, d2, k in zip(model.parameters(), dirn1.parameters(), dirn2.parameters(), vis_model.parameters()):
                 k.data = i.data + a*d1.data + b*d2.data
+
         loss, acc = give_loss_acc(train_loader, vis_model, criterion, rank)
         print(f"GPU {rank} : Loss {loss}, Acc {acc}")
         output[indices[s], 0] = loss
@@ -148,4 +136,5 @@ if __name__ == "__main__":
         workers[i].join()
 
     output = output.reshape((mesh_x.shape[0], mesh_y.shape[0], 2)).numpy()
-    np.save("2dsave.npy", np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
+    filename = os.path.basename(args.weight_path).split('.')[0]
+    np.save(f"results/plot_npy/{filename}.npy", np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
