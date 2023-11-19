@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--weight_path', type=str, help='Path to the weights file')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
+parser.add_argument('--range', type=int, default=20, help='In [-1, 1] the number of steps to take in one direction(same for both x and y). Higher the number, higher the resolution of the plot will be')
 
 def load_model_with_weights(path, device):
     model_init = torch.load(path, map_location=device)
@@ -110,8 +111,8 @@ if __name__ == "__main__":
         param.data = param.data / torch.linalg.norm(param.data)
         param.data *= m_param 
 
-    alpha = torch.linspace(-1, 1, 20)
-    beta = torch.linspace(-1, 1, 20)
+    alpha = torch.linspace(-1, 1, args.range)
+    beta = torch.linspace(-1, 1, args.range)
     mesh_x, mesh_y = torch.meshgrid(alpha, beta)
     mesh = torch.cat([mesh_x.unsqueeze(0), mesh_y.unsqueeze(0)], 0).permute(1, 2, 0).reshape(-1, 2)
     
@@ -137,4 +138,4 @@ if __name__ == "__main__":
 
     output = output.reshape((mesh_x.shape[0], mesh_y.shape[0], 2)).numpy()
     filename = os.path.basename(args.weight_path).split('.')[0]
-    np.save(f"results/plot_npy/{filename}.npy", np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
+    np.save(f"results/plot_npy/{filename}-{args.range}.npy", np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
