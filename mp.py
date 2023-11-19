@@ -41,7 +41,7 @@ def train(rank, args):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     model = give_model(args).to(device)
-    model_unique_id = f"{model.get_unique_id()}-{args.batch_size}-{args.epochs}epochs"
+    model_unique_id = f"{model.get_unique_id()}-{args.lr}lr-{args.batch_size}bs-{args.epochs}epochs"
     # Create a DDP instance
     model.to(rank)
     model = DDP(model, device_ids=[rank])
