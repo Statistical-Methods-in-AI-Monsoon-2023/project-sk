@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from models import give_model
+from models import give_model, gen_unique_id
 from data import load_cifar10
 import os
 from torch.distributed import init_process_group, destroy_process_group
@@ -19,6 +19,8 @@ parser = argparse.ArgumentParser(description='Train a model on CIFAR10')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train for')
 parser.add_argument('--batch_size', type=int, default=128, help='Batch size')
 parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate')
+parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight decay')
+parser.add_argument('--optimizer', type=str, default='adam', help='Optimizer')
 parser.add_argument('--save_every', type=int, default=-1, help='Save every save_every iterations')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
 
@@ -41,11 +43,14 @@ def train(rank, args):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     model = give_model(args).to(device)
-    model_unique_id = f"{model.get_unique_id()}-{args.lr}lr-{args.batch_size}bs-{args.epochs}epochs"
+    model_unique_id = gen_unique_id(args)
     # Create a DDP instance
     model.to(rank)
     model = DDP(model, device_ids=[rank])
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    if args.optimizer == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     # Training loop
     num_epochs = args.epochs
     count = 0
