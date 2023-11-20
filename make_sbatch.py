@@ -4,7 +4,6 @@ header = """
 #SBATCH --gres=gpu:4
 #SBATCH --mem-per-cpu=4G
 #SBATCH --time=4-00:00:00
-#SBATCH --partition=ihub
 """[1:]
 cmd_header = """
 module load u18/cuda/10.2
@@ -82,6 +81,8 @@ for hyperparam in combo:
     with open(filename, "w") as f:
         f.write(header)
         f.write(f"#SBATCH -A={args.account}\n")
+        if args.account=="neuro":
+            f.write("#SBATCH --partition=ihub\n")
         f.write(f"#SBATCH --output={logfile}\n")
         f.write(cmd_header)
         f.write("\n".join(cmds))
