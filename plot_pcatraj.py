@@ -80,14 +80,14 @@ def plot_pca_traj(args):
     models = []
     for file in os.listdir(args.folderpath):
         if file.endswith(".pt"):
-            model = give_model(args)
-            model.load_state_dict(torch.load(os.path.join(args.folderpath, file)))
+            model = torch.load(os.path.join(args.folderpath, file), map_location=device)
+            model.eval()
             models.append(model)
     concats = []
     for i in range(len(models)):
         model = models[i]
         concat = [param.reshape(-1) for param in model.parameters()]
-        concat = torch.cat(concat).numpy()
+        concat = torch.cat(concat).cpu().detach().numpy()
         concats.append(concat)
 
     diff_concats = []
@@ -96,11 +96,39 @@ def plot_pca_traj(args):
         diff_concats.append(concats[i] - concats[-1])
     
     diff_concats = np.array(diff_concats)
+    print(diff_concats.shape)
     pca = PCA(n_components=2)
     pca.fit(diff_concats)
     eigvecs = pca.components_
 
-    print(eigvecs.shape)
+    # print(eigvecs)
+
+    diff_concats = torch.tensor(diff_concats).to(device)
+    eigvecs = torch.tensor(eigvecs).to(device)
+    eigvecs = eigvecs / torch.linalg.norm(eigvecs, dim=1).reshape(-1, 1)
+    x_vals, y_vals = eigvecs @ diff_concats.T
+    x_vals = x_vals.detach().cpu().numpy()
+    y_vals = y_vals.detach().cpu().numpy()
+    # xlist, ylist = [], []
+    # for i in range(len(models) -1 ):
+    #     xlist.append((torch.dot(eigvecs[0], diff_concats[i])/torch.norm(eigvecs[0])).detach().cpu().item())
+    #     ylist.append((torch.dot(eigvecs[1], diff_concats[i])/torch.norm(eigvecs[1])).detach().cpu().item())
+
+    # plot trajectory
+
+    print(x_vals.shape, y_vals.shape)
+    print(x_vals, y_vals)
+
+    plt.figure()
+    plt.scatter(x_vals, y_vals)
+    plt.xlabel("PC1")
+    plt.ylabel("PC2")
+    plt.title("Trajectory of model parameters")
+    
+    if args.show:
+        plt.show()
+    else:
+        plt.savefig(f"results/{args.model}-pca.png")
 
     # if "noshort" in args.weights:
     #     block = BasicBlockNoShort
