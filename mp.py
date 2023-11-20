@@ -75,6 +75,7 @@ def train(rank, args):
                 torch.save(model.module, f"weights/{model_unique_id}/{epoch}.pt")
     if(rank == 0):
         torch.save(model.module, f"weights/{model_unique_id}.pt")
+    
     # Test the model
     model.eval()
     test_loss = 0
