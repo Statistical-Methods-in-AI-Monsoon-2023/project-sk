@@ -79,7 +79,7 @@ def plot_pca_traj(args):
 
     models = []
     for file in os.listdir(args.folderpath):
-        if file.endswith(".pth"):
+        if file.endswith(".pt"):
             model = give_model(args)
             model.load_state_dict(torch.load(os.path.join(args.folderpath, file)))
             models.append(model)
