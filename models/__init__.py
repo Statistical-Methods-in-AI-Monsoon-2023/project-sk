@@ -1,6 +1,7 @@
 from models.resnet import ResNet
 from models.vgg import VGG
 
+from datetime import datetime
 
 def give_model(args):
     args = args.model.split("-", 1)
@@ -12,3 +13,14 @@ def give_model(args):
         return VGG(margs)
     else:
         raise ValueError("Invalid model name")
+
+def gen_unique_id(args):
+    # generate a string from args
+    unique_id = ""
+    argslist=vars(args).items()
+    argslist=sorted(argslist)
+    for k,v in argslist:
+        unique_id += f"{k}:{v}_"
+    unique_id = unique_id[:-1]
+    # unique_id+=f"date:{datetime.now().strftime('%d-%m-%Y-%H.%M.%S')}"
+    return unique_id

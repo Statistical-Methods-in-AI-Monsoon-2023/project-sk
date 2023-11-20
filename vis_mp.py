@@ -9,7 +9,7 @@ import torchvision.models as models
 import torch.nn.functional as F
 import copy
 import matplotlib.pyplot as plt
-from models import give_model
+from models import give_model, gen_unique_id
 from visfuncs  import interpolate, move1D, move2D
 from data import load_cifar10
 import numpy as np
@@ -137,5 +137,5 @@ if __name__ == "__main__":
         workers[i].join()
 
     output = output.reshape((mesh_x.shape[0], mesh_y.shape[0], 2)).numpy()
-    filename = os.path.basename(args.weight_path).split('.')[0]
-    np.save(f"results/plot_npy/{filename}-{args.range}.npy", np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
+    unique_filename = gen_unique_id(args)
+    np.save(f"results/plot_npy/{unique_filename}.npy", np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
