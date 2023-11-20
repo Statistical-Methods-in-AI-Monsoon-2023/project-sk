@@ -1,14 +1,5 @@
-header = """
-#!/bin/bash
-#SBATCH -n 40
-#SBATCH --gres=gpu:4
-#SBATCH --mem-per-cpu=4G
-#SBATCH --time=4-00:00:00
-"""[1:]
-cmd_header = """
-module load u18/cuda/10.2
-module load u18/cudnn/7.6.5-cuda-10.2
-"""[1:]
+"""NOTE: Create a file ./sbatch/sbatch.sh with ###HERE### as a placeholder for the commands to run"""
+sbatch_file = open("sbatch/sbatch.sh", "r").read()
 
 import argparse
 import os
@@ -74,15 +65,11 @@ for hyperparam in combo:
 
     model = argsdict["model"]
     cmds = [
-        f"mkdir -p logs",
-        f"python3 mp.py {argstring}",
+        f"mkdir -p logs", f"python3 mp.py {argstring}",
         f"python3 vis_mp.py --weight_path {weights_path} --model {model} --range {50}"
     ]
+
+    sbatch_file = sbatch_file.replace("###HERE###", "\n".join(cmds))
+
     with open(filename, "w") as f:
-        f.write(header)
-        f.write(f"#SBATCH -A={args.account}\n")
-        if args.account=="neuro":
-            f.write("#SBATCH --partition=ihub\n")
-        f.write(f"#SBATCH --output={logfile}\n")
-        f.write(cmd_header)
-        f.write("\n".join(cmds))
+        f.write(sbatch_file)
