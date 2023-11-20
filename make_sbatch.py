@@ -81,6 +81,7 @@ for hyperparam in combo:
     ]
     with open(filename, "w") as f:
         f.write(header)
+        f.write(f"#SBATCH -A={args.account}\n")
         f.write(f"#SBATCH --output={logfile}\n")
         f.write(cmd_header)
         f.write("\n".join(cmds))
