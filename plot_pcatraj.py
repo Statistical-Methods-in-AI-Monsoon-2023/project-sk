@@ -16,12 +16,15 @@ from data import load_cifar10
 import numpy as np
 import argparse
 import torch.multiprocessing as mp
+import os
+from models import give_model
 
 
 parser = argparse.ArgumentParser(description='Plot loss and accuracy')
-parser.add_argument('--weights', type=str)
+parser.add_argument('--folderpath', type=str)
 parser.add_argument('--show', action='store_true')
 parser.add_argument('--json', action='store_true')
+parser.add_argument('--model', type=str, help='Name of the model',required=True)
 
 @torch.no_grad()
 def give_loss_acc(dataloader, model, criterion, device):
@@ -75,6 +78,11 @@ def plot_pca_traj(args):
     criterion = nn.CrossEntropyLoss()
 
     models = []
+    for file in os.listdir(args.folderpath):
+        if file.endswith(".pth"):
+            model = give_model(args)
+            model.load_state_dict(torch.load(os.path.join(args.folderpath, file)))
+            models.append(model)
     concats = []
     for i in range(len(models)):
         model = models[i]
@@ -92,66 +100,68 @@ def plot_pca_traj(args):
     pca.fit(diff_concats)
     eigvecs = pca.components_
 
-    if "noshort" in args.weights:
-        block = BasicBlockNoShort
-    else:
-        block = BasicBlock
+    print(eigvecs.shape)
 
-    dirn1 = ResNet(block, [9,9,9])
-    # dirn1.to(device)
-    for param, m_param in zip(dirn1.parameters(), model.parameters()):
-        if(len(m_param.shape) == 1):
-            param = m_param
-            continue
-        param.data = torch.randn_like(param.data)
-        param.data = param.data / torch.linalg.norm(param.data)
-        param.data *= m_param
+    # if "noshort" in args.weights:
+    #     block = BasicBlockNoShort
+    # else:
+    #     block = BasicBlock
 
-    dirn2 = ResNet(block, [9,9,9])
-    # dirn2.to(device)
-    for param, m_param in zip(dirn2.parameters(), model.parameters()):
-        if(len(m_param.shape) == 1):
-            param = m_param
-            continue
-        param.data = torch.randn_like(param.data)
-        param.data = param.data / torch.linalg.norm(param.data)
-        param.data *= m_param 
+    # dirn1 = ResNet(block, [9,9,9])
+    # # dirn1.to(device)
+    # for param, m_param in zip(dirn1.parameters(), model.parameters()):
+    #     if(len(m_param.shape) == 1):
+    #         param = m_param
+    #         continue
+    #     param.data = torch.randn_like(param.data)
+    #     param.data = param.data / torch.linalg.norm(param.data)
+    #     param.data *= m_param
 
-    alpha = torch.linspace(-1, 1, 20)
-    beta = torch.linspace(-1, 1, 20)
-    mesh_x, mesh_y = torch.meshgrid(alpha, beta)
-    mesh = torch.cat([mesh_x.unsqueeze(0), mesh_y.unsqueeze(0)], 0).permute(1, 2, 0).reshape(-1, 2)
+    # dirn2 = ResNet(block, [9,9,9])
+    # # dirn2.to(device)
+    # for param, m_param in zip(dirn2.parameters(), model.parameters()):
+    #     if(len(m_param.shape) == 1):
+    #         param = m_param
+    #         continue
+    #     param.data = torch.randn_like(param.data)
+    #     param.data = param.data / torch.linalg.norm(param.data)
+    #     param.data *= m_param 
+
+    # alpha = torch.linspace(-1, 1, 20)
+    # beta = torch.linspace(-1, 1, 20)
+    # mesh_x, mesh_y = torch.meshgrid(alpha, beta)
+    # mesh = torch.cat([mesh_x.unsqueeze(0), mesh_y.unsqueeze(0)], 0).permute(1, 2, 0).reshape(-1, 2)
     
-    num_per_proc = mesh.shape[0] // nprocs
-    steps = [mesh[i*num_per_proc:(i+1)*num_per_proc, :] for i in range(nprocs-1)]
-    steps.append(mesh[(nprocs-1)*(num_per_proc):, :])
-    indices = [torch.arange(i*num_per_proc, (i+1)*num_per_proc) for i in range(nprocs-1)]
-    indices.append(torch.arange((nprocs-1)*num_per_proc, mesh.shape[0]))
+    # num_per_proc = mesh.shape[0] // nprocs
+    # steps = [mesh[i*num_per_proc:(i+1)*num_per_proc, :] for i in range(nprocs-1)]
+    # steps.append(mesh[(nprocs-1)*(num_per_proc):, :])
+    # indices = [torch.arange(i*num_per_proc, (i+1)*num_per_proc) for i in range(nprocs-1)]
+    # indices.append(torch.arange((nprocs-1)*num_per_proc, mesh.shape[0]))
 
-    # Loss and Accuracy Values
-    output = torch.zeros(mesh.shape[0], 2)
-    output.share_memory_()
+    # # Loss and Accuracy Values
+    # output = torch.zeros(mesh.shape[0], 2)
+    # output.share_memory_()
 
-    mp.set_start_method('spawn', force=True)
+    # mp.set_start_method('spawn', force=True)
 
-    for i in range(nprocs):
-        p = mp.Process(target=vis, args=[i, model, dirn1, dirn2, criterion, steps[i], indices[i], output])
-        p.start()
-        workers.append(p)
+    # for i in range(nprocs):
+    #     p = mp.Process(target=vis, args=[i, model, dirn1, dirn2, criterion, steps[i], indices[i], output])
+    #     p.start()
+    #     workers.append(p)
 
-    for i in range(nprocs):
-        workers[i].join()
+    # for i in range(nprocs):
+    #     workers[i].join()
 
-    loss = output[:, 0].reshape(mesh_x.shape)
-    acc = output[:, 1].reshape(mesh_x.shape)
+    # loss = output[:, 0].reshape(mesh_x.shape)
+    # acc = output[:, 1].reshape(mesh_x.shape)
 
-    plt.figure()
-    plt.contourf(mesh_x, mesh_y, loss, 20)
-    plt.colorbar()
-    plt.xlabel("alpha")
-    plt.ylabel("beta")
-    plt.title("Loss Contour")
-    plt.savefig("loss_contour.png")
+    # plt.figure()
+    # plt.contourf(mesh_x, mesh_y, loss, 20)
+    # plt.colorbar()
+    # plt.xlabel("alpha")
+    # plt.ylabel("beta")
+    # plt.title("Loss Contour")
+    # plt.savefig("loss_contour.png")
             
 
 if __name__ == "__main__":
