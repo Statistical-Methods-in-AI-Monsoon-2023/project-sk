@@ -101,6 +101,8 @@ def plot_pca_traj(args):
     pca.fit(diff_concats)
     eigvecs = pca.components_
 
+    print("Variances: ", pca.explained_variance_ratio_)
+
     # print(eigvecs)
 
     diff_concats = torch.tensor(diff_concats).to(device)
