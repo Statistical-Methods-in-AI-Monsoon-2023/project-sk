@@ -7,6 +7,7 @@ import { init_gui } from './gui.js'
 import { add_lights, build_scene } from './scene.js'
 import { load_assets } from './loader.js'
 import { action } from './action.js'
+import { init_physics } from './physics.js'
 
 function init_controls() {
 	init_keys()
@@ -24,6 +25,7 @@ async function main() {
 	await load_assets()
 	init_gui()
 	build_scene()
+	// await init_physics()
 	init_cameras()
 	init_controls()
 	add_lights()

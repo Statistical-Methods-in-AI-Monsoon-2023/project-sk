@@ -2,6 +2,7 @@ import { GUI } from 'GUI'
 import { world } from './world.js'
 import { reset_orbit_cam } from './controls.js'
 import { load_model_name } from './plot.js'
+import { add_ball, clear_balls } from './physics.js'
 
 const gui_items = {
 	orbit_camera: () => {
@@ -9,6 +10,12 @@ const gui_items = {
 	},
 	reset_orbit_camera: () => {
 		reset_orbit_cam()
+	},
+	add_ball: () => {
+		add_ball()
+	},
+	clear_balls: () => {
+		clear_balls()
 	},
 }
 

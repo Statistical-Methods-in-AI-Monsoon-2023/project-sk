@@ -21,6 +21,18 @@ function add_ground() {
 	world.ground = ground
 }
 
+function add_skybox(){
+	const loader = new THREE.CubeTextureLoader()
+	const texture = loader.load([
+		'./skybox/back.png',
+		'./skybox/front.png',
+		'./skybox/top.png',
+		'./skybox/bottom.png',
+		'./skybox/right.png',
+		'./skybox/left.png',
+	])
+	world.scene.background = texture
+}
 
 function add_lights() {
 	const { scene } = world
@@ -57,7 +69,8 @@ function add_lights() {
 }
 
 function build_scene() {
-	add_ground()
+	// add_ground()
+	add_skybox()
 	add_plot()
 	load_model_name()
 }

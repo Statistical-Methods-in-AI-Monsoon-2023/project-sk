@@ -36,7 +36,11 @@ const world = {
 	},
 	model_names: {},
 	active_model: null,
-	model_path_prefix:"plot_json/"
+	model_path_prefix:"plot_json/",
+
+	Ammo: null,
+	physics: {},
+	origin: new THREE.Vector3(-0.5, 0, -0.5),
 }
 
 const globals = {

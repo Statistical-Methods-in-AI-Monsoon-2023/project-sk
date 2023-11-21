@@ -1,9 +1,11 @@
 import { world } from './world.js'
 import * as THREE from 'three'
 import * as TWEEN from 'tween'
+import { update_physics } from './physics.js'
 
 function update(delta) {
 	
+	update_physics(delta)
 	TWEEN.update()
 
 	const {orbit_cam, orbit} = world

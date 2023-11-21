@@ -1,14 +1,18 @@
 import * as THREE from 'three'
 import { world } from './world.js'
 import { get_pretty_name } from './gui.js'
+import { destroy_physics, init_physics } from './physics.js'
 
 function add_grid() {
 	const { scene } = world
 
-	const grid_opacity = 0.5
+	const grid_opacity = 0.2
+	const axes_opacity = 0.5
 
 	const grid = new THREE.Group()
 	const axes = new THREE.AxesHelper(1.2)
+	axes.material.transparent = true
+	axes.material.opacity = axes_opacity
 	grid.add(axes)
 
 	const gridXZ = new THREE.GridHelper(1, 10)
@@ -30,6 +34,8 @@ function add_grid() {
 	gridYZ.material.transparent = true
 	gridYZ.material.opacity = grid_opacity
 	grid.add(gridYZ)
+
+	grid.position.copy(world.origin)
 
 	scene.add(grid)
 }
@@ -107,15 +113,18 @@ function make_mesh(width = 20, height = 20) {
 
 	const material = new THREE.MeshStandardMaterial({
 		vertexColors: THREE.VertexColors,
+		roughness: 0.5
 	})
 
 	geometry.computeFaceNormals()
 	geometry.computeVertexNormals()
 
 	const mesh = new THREE.Mesh(geometry, material)
-	// rotate the mesh to correct position
+	// rotate the mesh
 	mesh.rotation.x = -Math.PI / 2
 	mesh.rotation.z = -Math.PI / 2
+
+	mesh.position.copy(world.origin)
 
 	// shadows
 	mesh.castShadow = true
@@ -242,6 +251,7 @@ function update_plot(plot_name) {
 
 	plots[plot_name].visible = true
 	world.active_plot = plots[plot_name]
+	destroy_physics()
 	swap_plot(plot_name)
 }
 
@@ -266,7 +276,7 @@ function blend_mesh_animate(data) {
 		return
 	}
 	cancelAnimationFrame(world.blend_plot.frameId)
-	const old_data=blend_plot.data
+	const old_data = blend_plot.data
 	function animate() {
 		if (alpha < 1) {
 			alpha += 0.01
@@ -274,6 +284,7 @@ function blend_mesh_animate(data) {
 			world.blend_plot.frameId = requestAnimationFrame(animate)
 		} else {
 			blend_plot.data = data
+			init_physics()
 		}
 	}
 	animate()
@@ -298,6 +309,16 @@ function blend_mesh(geometry, data1, data2, alpha = 0.5) {
 			geometry.vertices[offset(x, y)].z = data1[x][y].z * alpha + data2[x][y].z * (1 - alpha)
 		}
 	}
+
+	// update vertex colors
+	const colors = []
+	for (let i = 0; i < geometry.vertices.length; i++) {
+		colors.push(get_color(geometry.vertices[i].z))
+	}
+	geometry.faces.forEach(face => {
+		face.vertexColors = [colors[face.a], colors[face.b], colors[face.c]]
+	})
+	geometry.colorsNeedUpdate = true
 	geometry.verticesNeedUpdate = true
 	geometry.computeFaceNormals()
 	geometry.computeVertexNormals()
@@ -308,7 +329,10 @@ function add_minima_light() {
 	// minimaLight
 	const minimaLight = new THREE.PointLight(0xffffff, 1, 100)
 	// x, y at center of plot
-	minimaLight.position.set(0.5, 0.1, 0.5)
+	minimaLight.position.copy(world.origin)
+	minimaLight.position.x += 0.5
+	minimaLight.position.z += 0.5
+	minimaLight.position.y += 0.1
 	scene.add(minimaLight)
 
 	// // add light helper

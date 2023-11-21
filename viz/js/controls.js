@@ -1,6 +1,7 @@
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { world } from './world.js'
 import * as THREE from 'three'
+import TWEEN from 'tween'
 
 function init_keys() {
 	const handler = flag => event => {
@@ -94,10 +95,22 @@ function init_cameras() {
 }
 
 function reset_orbit_cam() {
-	world.orbit_cam.position.set(0, 2, 3)
-	world.orbit_cam.rotation.set(0, 0, 0)
-	world.orbit_cam.updateProjectionMatrix()
-	world.orbit.update()
+	const { orbit_cam, orbit } = world
+	const transitions = [
+		[orbit_cam.position, new THREE.Vector3(0, 1.2, 1.2)],
+		[orbit_cam.quaternion, new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0, 'XYZ'))],
+		[orbit.target, world.origin],
+	]
+	// smooth transition
+	for (const [start, end] of transitions) {
+		new TWEEN.Tween(start)
+			.to(end, 1000)
+			.easing(TWEEN.Easing.Quadratic.InOut)
+			.onUpdate(() => {
+				orbit_cam.updateProjectionMatrix()
+				orbit.update()
+			}).start()
+	}
 }
 
 export { init_keys, init_swipes, init_cameras, init_orbit, reset_orbit_cam }
