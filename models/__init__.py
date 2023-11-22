@@ -13,7 +13,7 @@ def give_model(args):
     elif name == "vgg":
         return VGG(margs)
     elif name == "cnn":
-        return CNN(margs)
+        return CNN()
     else:
         raise ValueError("Invalid model name")
 
