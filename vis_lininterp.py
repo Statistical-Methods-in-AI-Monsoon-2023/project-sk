@@ -79,7 +79,7 @@ def vis(rank, model1, model2, dirn, criterion, steps, indices, output):
     for s, step in enumerate(steps):
         for i, j, k in zip(model1.parameters(), model2.parameters(), dirn.parameters()):
             k.data = i.data + step*j.data
-            loss, acc = give_loss_acc(train_loader, dirn, criterion, device)
+            loss, acc = give_loss_acc(train_loader, dirn, criterion, rank)
             output[indices[s], 0] = loss
             output[indices[s], 1] = acc
 
