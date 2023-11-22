@@ -92,16 +92,16 @@ def give_minmax_eigs(dataloader, model, criterion, device):
             accum_transform.backward()
         
         final_transform = [param.grad.reshape(-1) for param in model.parameters()]
-        print("Done")
+        print(f"GPU {device} Done")
         
         return torch.cat(final_transform).cpu().numpy()
     
     param_len = sum(param.reshape(-1).shape[0] for param in model.parameters())
     t0 = time.time()
     H = LinearOperator((param_len, param_len), matvec=hess_transform)
-    print(f"Time Taken : {time.time() - t0}")
+    print(f"GPU {device} Time Taken : {time.time() - t0}")
     maxeigs, eigvec = eigsh(H, k = 1)
-    print(maxeigs)
+    print(f"GPU {device}", maxeigs)
 
     # eigs is the max eigenvalue
 
@@ -113,10 +113,11 @@ def give_minmax_eigs(dataloader, model, criterion, device):
         return hess_transform(v) - shifted * v
     
     H = LinearOperator((param_len, param_len), matvec=min_hess_transform)
-    mineigs, eigvec = eigsh(H, k = 1)
+    mineigs, eigvec = eigsh(H, k = 1, return_eigenvectors=False)
     mineigs += shifted
     
-    print(mineigs)
+    print(f"GPU {device}", mineigs)
+    assert mineigs < maxeigs, "Min eig more than maxeig"
     return maxeigs, mineigs
 
 def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output):
