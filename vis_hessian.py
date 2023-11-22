@@ -73,7 +73,11 @@ def give_minmax_eigs(dataloader, model, criterion, device):
         model.zero_grad()
 
         # params = [param for param in model.parameters()]
+        prob = 0.5
+
         for inputs, labels in dataloader:
+            if(np.random.random(1) > prob):
+                continue
             inputs, labels = inputs.to(device), labels.to(device)
             out = model(inputs)
             loss = criterion(out, labels)
