@@ -13,6 +13,7 @@ import copy
 import matplotlib.pyplot as plt
 from models.resnet import ResNet, BasicBlock, BasicBlockNoShort
 from visfuncs  import interpolate, move1D, move2D
+from models import give_model, gen_unique_id
 from data import load_cifar10
 import numpy as np
 import argparse
@@ -22,11 +23,12 @@ import time
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('modelname')
-parser.add_argument('weightpath')
+parser.add_argument('--weight_path', type=str, help='Path to the weights file')
+parser.add_argument('--model', type=str, help='Name of the model',required=True)
+parser.add_argument('--range', type=int, default=20, help='In [-1, 1] the number of steps to take in one direction(same for both x and y). Higher the number, higher the resolution of the plot will be')
 
 
-def give_model(path, device):
+def load_model_with_weights(path, device):
     model_init = torch.load(path, map_location=device)
     try:
         net = ResNet(BasicBlockNoShort, [9,9,9])
@@ -50,9 +52,13 @@ def give_minmax_eigs(dataloader, model, criterion, device):
     returns the min and max eigenvalues
     '''
 
+    model.num_calls = 0
+
     def hess_transform(v):
         # Computes H @ v, (v is an arbitrary vector)
         # v is a numpy array, first convert to tensor of the same shape as the model parameters
+        model.num_calls += 1
+        print(f"Call {model.num_calls}")
         v_tensor = torch.from_numpy(v).to(device)
         v_ten = []
         total_len = 0
@@ -61,13 +67,12 @@ def give_minmax_eigs(dataloader, model, criterion, device):
             param_len = param.reshape(-1).shape[0]
             v_ten.append(v_tensor[total_len:total_len+param_len].reshape(param.shape))
             total_len += param_len
-        print("Loop 1", time.time() - t0)
         # v_ten is the same format as the model.params() list
 
         model.eval()
         model.zero_grad()
 
-        # params = [param for param in model.parameters()] 
+        # params = [param for param in model.parameters()]
         for inputs, labels in dataloader:
             inputs, labels = inputs.to(device), labels.to(device)
             out = model(inputs)
@@ -75,26 +80,44 @@ def give_minmax_eigs(dataloader, model, criterion, device):
             t0 = time.time()
             # Create graph is used to calculate higher order gradients
             grads = torch.autograd.grad(outputs = loss, inputs = model.parameters(), create_graph=True)
-            print("Loss 1", time.time() - t0)
+            # print("Loss 1", time.time() - t0)
             t0 = time.time()
             # Simluate the dot product of the gradient with the v_ten elements
             accum_transform = torch.zeros(1, requires_grad=True).to(device)
             for param_grad, param_vec in zip(grads, v_ten):
                 accum_transform += torch.sum(param_grad*param_vec)
-            print("Loop 2", time.time() - t0)
+            # print("Loop 2", time.time() - t0)
             
             # Keep on adding the gradients for the full dataset (The gradients will be accumulated into .grad)
             accum_transform.backward()
         
         final_transform = [param.grad.reshape(-1) for param in model.parameters()]
+        print("Done")
         
         return torch.cat(final_transform).cpu().numpy()
     
     param_len = sum(param.reshape(-1).shape[0] for param in model.parameters())
+    t0 = time.time()
     H = LinearOperator((param_len, param_len), matvec=hess_transform)
-    eigs, eigvec = eigsh(H, k = 1)
-    print(eigs)
+    print(f"Time Taken : {time.time() - t0}")
+    maxeigs, eigvec = eigsh(H, k = 1)
+    print(maxeigs)
 
+    # eigs is the max eigenvalue
+
+    # Assuming min eig is negative,
+    # shifting the spectrum by 0.6*eigs will make the min eigenvalue to the max one (in absolute sense)
+    shifted = 0.6 * maxeigs
+
+    def min_hess_transform(v):
+        return hess_transform(v) - shifted * v
+    
+    H = LinearOperator((param_len, param_len), matvec=min_hess_transform)
+    mineigs, eigvec = eigsh(H, k = 1)
+    mineigs += shifted
+    
+    print(mineigs)
+    return maxeigs, mineigs
 
 def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output):
 
@@ -121,10 +144,10 @@ if __name__ == "__main__":
     nprocs = torch.cuda.device_count()
     workers = []
 
-    model = give_model('weights/' + args.weightpath, 'cpu')
+    model = load_model_with_weights(args.weight_path, 'cpu')
     criterion = nn.CrossEntropyLoss()
 
-    dirn1 = ResNet(args.modelname, [9,9,9])
+    dirn1 = give_model(args)
     # dirn1.to(device)
     for param, m_param in zip(dirn1.parameters(), model.parameters()):
         if(len(m_param.shape) == 1):
@@ -134,7 +157,7 @@ if __name__ == "__main__":
         param.data = param.data / torch.linalg.norm(param.data)
         param.data *= m_param
 
-    dirn2 = ResNet(args.modelname, [9,9,9])
+    dirn2 = give_model(args)
     # dirn2.to(device)
     for param, m_param in zip(dirn2.parameters(), model.parameters()):
         if(len(m_param.shape) == 1):
@@ -144,8 +167,8 @@ if __name__ == "__main__":
         param.data = param.data / torch.linalg.norm(param.data)
         param.data *= m_param 
 
-    alpha = torch.linspace(-1, 1, 20)
-    beta = torch.linspace(-1, 1, 20)
+    alpha = torch.linspace(-1, 1, args.range)
+    beta = torch.linspace(-1, 1, args.range)
     mesh_x, mesh_y = torch.meshgrid(alpha, beta)
     mesh = torch.cat([mesh_x.unsqueeze(0), mesh_y.unsqueeze(0)], 0).permute(1, 2, 0).reshape(-1, 2)
     
