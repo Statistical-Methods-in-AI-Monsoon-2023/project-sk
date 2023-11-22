@@ -113,8 +113,8 @@ if __name__ == "__main__":
     alpha = torch.linspace(-1, 1, args.range)
     
     num_per_proc = alpha.shape[0] // nprocs
-    steps = [alpha[i*num_per_proc:(i+1)*num_per_proc, :] for i in range(nprocs-1)]
-    steps.append(alpha[(nprocs-1)*(num_per_proc):, :])
+    steps = [alpha[i*num_per_proc:(i+1)*num_per_proc] for i in range(nprocs-1)]
+    steps.append(alpha[(nprocs-1)*(num_per_proc):])
     indices = [torch.arange(i*num_per_proc, (i+1)*num_per_proc) for i in range(nprocs-1)]
     indices.append(torch.arange((nprocs-1)*num_per_proc, alpha.shape[0]))
 
