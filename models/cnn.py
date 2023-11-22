@@ -12,11 +12,20 @@ import torch.nn.functional as F
 class CNN(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 5, 3)
-        self.conv2 = nn.Conv2d(5, 5, 3)
+        self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
         self.maxpool = nn.MaxPool2d(2)
-        self.fc = nn.Linear(125, 10)
+        fc_dim = self.give_lin_layer_shape()
+        self.fc = nn.Linear(fc_dim, 10)
         self.dropout = nn.Dropout2d(p = 0.01)
+
+    @torch.no_grad()
+    def give_lin_layer_shape(self):
+        x = torch.randn((1, 3, 32, 32))
+        x = self.maxpool(self.conv1(x))
+        x = self.maxpool(self.conv2(x))
+        x = x.reshape(1, -1)
+        return x.shape[1]
         
     def forward(self, x):
         N = x.shape[0]

@@ -1,5 +1,6 @@
 from models.resnet import ResNet
 from models.vgg import VGG
+from models.cnn import CNN
 
 from datetime import datetime
 
@@ -11,6 +12,8 @@ def give_model(args):
         return ResNet(margs)
     elif name == "vgg":
         return VGG(margs)
+    elif name == "cnn":
+        return CNN(margs)
     else:
         raise ValueError("Invalid model name")
 
