@@ -13,7 +13,7 @@ vgg_cfgs: Dict[str, List[Union[str, int]]] = {
 
 
 def _make_layers(vgg_cfg: List[Union[str, int]], batch_norm: bool = False) -> nn.Sequential:
-    layers: nn.Sequential[nn.Module] = nn.Sequential()
+    layers = []
     in_channels = 3
     for v in vgg_cfg:
         if v == "M":
@@ -30,7 +30,7 @@ def _make_layers(vgg_cfg: List[Union[str, int]], batch_norm: bool = False) -> nn
                 layers.append(nn.ReLU(True))
             in_channels = v
 
-    return layers
+    return nn.Sequential(*layers)
 
 
 class VGG(nn.Module):
