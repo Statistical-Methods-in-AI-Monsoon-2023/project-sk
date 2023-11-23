@@ -49,7 +49,7 @@ class VIT(nn.Module):
         num_classes = 10
         num_attention_blocks = 5
         self.patch_size = P
-        self.num_patches = self.img_size[0] * self.img_size[1] / (P ** 2)
+        self.num_patches = self.img_size[0] * self.img_size[1] // (P ** 2)
         self.patch_embedding = nn.Linear(C*P**2, D)
         self.encoder = Transformer(num_attention_blocks, D)
         self.final_proj = nn.Linear(D, num_classes)
