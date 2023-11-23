@@ -25,18 +25,18 @@ class Attention(nn.Module):
         return output
 
 class Transformer(nn.Module):
-    def __init__(self, num_attention, D):
+    def __init__(self, D):
         super().__init__()
         layers = []
-        for _ in range(num_attention):
-            layers.append(Attention(D, D))
-        self.attention_layers = nn.Sequential(*layers)
+        self.layer_norm = nn.LayerNorm()
+        self.attention = Attention(D, D)
 
     def forward(self, x):
         '''
         forward pass through the transformer
         '''
-        x = self.attention_layers(x)
+        x = self.attention(x)
+        x = self.layer_norm(x) + x
         return x # (B, N, D)
 
 class VIT(nn.Module):
@@ -47,11 +47,14 @@ class VIT(nn.Module):
         P = 4
         D = 128
         num_classes = 10
-        num_attention_blocks = 5
+        num_transformer_blocks = 2
         self.patch_size = P
         self.num_patches = self.img_size[0] * self.img_size[1] // (P ** 2)
         self.patch_embedding = nn.Linear(C*P**2, D)
-        self.encoder = Transformer(num_attention_blocks, D)
+        self.encoder_layers = []
+        for _ in range(num_transformer_blocks):
+            self.encoder_layers.append(Transformer(D))
+        self.encoder = nn.Sequential(*self.encoder_layers)
         self.final_proj = nn.Linear(D, num_classes)
     
     def forward(self, img):
@@ -68,4 +71,4 @@ class VIT(nn.Module):
         encoded = encoded.mean(dim = 1) # (B, D)
         out_logits = self.final_proj(encoded) # (B, num_classes)
         
-        return out_logits
+        return F.sigmoid(out_logits)
