@@ -160,14 +160,14 @@ if __name__ == "__main__":
     total_len = 0
     for param, m_param in zip(dirn1.parameters(), model.parameters()):
         param_len = param.reshape(-1).shape[0]
-        param.data = v_ten1[total_len:total_len+param_len].reshape(param.shape) * torch.linalg.norm(m_param)
+        param.data = v_ten1[total_len:total_len+param_len].reshape(param.shape) #* torch.linalg.norm(m_param)
         total_len += param_len
 
     dirn2 = give_model(args)
     total_len = 0
     for param, m_param in zip(dirn2.parameters(), model.parameters()):
         param_len = param.reshape(-1).shape[0]
-        param.data = v_ten2[total_len:total_len+param_len].reshape(param.shape) * torch.linalg.norm(m_param)
+        param.data = v_ten2[total_len:total_len+param_len].reshape(param.shape) #* torch.linalg.norm(m_param)
         total_len += param_len
 
     alpha = torch.linspace(x_min, x_max, args.range)
