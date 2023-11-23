@@ -27,16 +27,16 @@ class Attention(nn.Module):
 class Transformer(nn.Module):
     def __init__(self, num_attention, D):
         super().__init__()
-        self.layers = []
+        layers = []
         for _ in range(num_attention):
-            self.layers.append(Attention(D, D))
-    
+            layers.append(Attention(D, D))
+        self.attention_layers = nn.Sequential(*layers)
+
     def forward(self, x):
         '''
         forward pass through the transformer
         '''
-        for layer in self.layers:
-            x = layer(x)
+        x = self.attention_layers(x)
         return x # (B, N, D)
 
 class VIT(nn.Module):
