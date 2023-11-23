@@ -27,7 +27,6 @@ class Attention(nn.Module):
 class Transformer(nn.Module):
     def __init__(self, D):
         super().__init__()
-        layers = []
         self.layer_norm = nn.LayerNorm(D)
         self.attention = Attention(D, D)
 
@@ -37,7 +36,7 @@ class Transformer(nn.Module):
         '''
         y = self.layer_norm(x)
         y = self.attention(y) + x
-        return x # (B, N, D)
+        return y # (B, N, D)
 
 class VIT(nn.Module):
     def __init__(self):
