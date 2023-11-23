@@ -60,7 +60,7 @@ class VIT(nn.Module):
         forward pass through the VIT
         '''
         B = img.shape[0]
-        patches = img.unfold(1, self.patch_size, self.patch_size).unfold(2, self.patch_size, self.patch_size) # (B, C, Nx, Ny, P, P)
+        patches = img.unfold(2, self.patch_size, self.patch_size).unfold(3, self.patch_size, self.patch_size) # (B, C, Nx, Ny, P, P)
         patches = patches.permute(0, 2, 3, 1, 4, 5) # (B, Nx, Ny, C, P, P)
         patches = patches.reshape(B, self.num_patches, -1)
         patch_embed = self.patch_embedding(patches) # (B, N, D)
