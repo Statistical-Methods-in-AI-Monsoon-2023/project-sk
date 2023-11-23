@@ -126,8 +126,6 @@ def plot_trajectory(x_vals,y_vals):
     else:
         plt.savefig(f"results/{args.model}-pca.png")
 
-    
-
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -187,7 +185,7 @@ if __name__ == "__main__":
         # Loss and Accuracy Values
         output = torch.zeros(mesh.shape[0], 2)
         output.share_memory_()
-
+        print(output.shape)
         mp.set_start_method('spawn', force=True)
 
         for i in range(nprocs):
@@ -197,6 +195,9 @@ if __name__ == "__main__":
 
         for i in range(nprocs):
             workers[i].join()
+        
+        print(output.shape)
+        print(mesh_x.shape)
         np.save(npy_data, np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
     else:
         output = np.load(npy_data, allow_pickle=True)
@@ -217,6 +218,6 @@ if __name__ == "__main__":
     plt.title("Loss Contour Plot")
     if args.show:
         plt.show()
-    else:
-        plt.savefig(f"results/{args.model}-pca-contour.png")
+    
+    plt.savefig(f"results/{args.model}-pca-contour.png")
 
