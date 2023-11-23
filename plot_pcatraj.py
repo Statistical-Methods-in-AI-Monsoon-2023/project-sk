@@ -198,7 +198,7 @@ if __name__ == "__main__":
         
         print(output.shape)
         print(mesh_x.shape)
-        np.save(npy_data, np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
+        np.savez(npy_data, loss = output[..., 0], acc = output[..., 1], mesh_x = mesh_x.numpy(), mesh_y = mesh_y.numpy())
     else:
         output = np.load(npy_data, allow_pickle=True)
         loss,acc,mesh_x,mesh_y = output
