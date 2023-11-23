@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class Attention(nn.Module):
     def __init__(self, Din, Dout):
-        super.__init__()
+        super().__init__()
         self.query = nn.Linear(Din, Dout)
         self.key = nn.Linear(Din, Dout)
         self.value = nn.Linear(Din, Dout)
@@ -41,15 +41,15 @@ class Transformer(nn.Module):
 
 class VIT(nn.Module):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         self.img_size = (32, 32)
         C = 3
         P = 4
-        self.patch_size = P
-        self.num_patches = self.img_size[0] * self.img_size[1] / (P ** 2)
         D = 128
         num_classes = 10
         num_attention_blocks = 5
+        self.patch_size = P
+        self.num_patches = self.img_size[0] * self.img_size[1] / (P ** 2)
         self.patch_embedding = nn.Linear(C*P**2, D)
         self.encoder = Transformer(num_attention_blocks, D)
         self.final_proj = nn.Linear(D, num_classes)
