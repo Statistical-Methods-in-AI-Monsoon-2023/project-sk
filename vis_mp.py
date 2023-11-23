@@ -25,6 +25,7 @@ parser.add_argument('--range', type=int, default=20, help='In [-1, 1] the number
 
 def load_model_with_weights(path, device):
     model_init = torch.load(path, map_location=device)
+    model_init = model_init['model']
     # try:
     #     net = ResNet(BasicBlockNoShort, [9,9,9])
     #     net.load_state_dict(model_init['state_dict'])

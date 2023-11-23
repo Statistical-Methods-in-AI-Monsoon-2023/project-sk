@@ -14,6 +14,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.multiprocessing as mp
 import time
 import argparse
+import math
 
 parser = argparse.ArgumentParser(description='Train a model on CIFAR10')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train for')
@@ -32,6 +33,10 @@ def setup(rank, args):
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '3003'
     init_process_group('nccl', rank=rank, world_size=args.world_size)
+
+def calc_weight_norm(model):
+    w2 = sum([torch.sum(param ** 2).item() for param in model.parameters()])
+    return math.sqrt(w2)
 
 def train(rank, args):
 
@@ -55,6 +60,9 @@ def train(rank, args):
     num_epochs = args.epochs
     count = 0
     t1 = time.time()
+    if(rank == 0):
+        losses = []
+        weight_norm = []
 
     if(args.save_every != -1):
         os.makedirs(f'weights/{model_unique_id}', exist_ok=True)
@@ -69,17 +77,22 @@ def train(rank, args):
             target = target.to(rank)
             output = model(data)
             loss = F.cross_entropy(output, target)
+            losses.append(loss.item())
             loss.backward()
             optimizer.step()
-        
+            if(rank == 0):
+                losses.append(loss.item())
+            
             if batch_idx % 100 == 0:
                 print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
         
         if(rank == 0):
+            weight_norm.append(calc_weight_norm(model))
             if(epoch % args.save_every == 0 and args.save_every != -1):
                 torch.save(model.module, f"weights/{model_unique_id}/{epoch}.pt")
+
     if(rank == 0):
-        torch.save(model.module, f"weights/{model_unique_id}.pt")
+        torch.save({"model" : model.module, "losses" : losses, "weight_norm" : weight_norm}, f"weights/{model_unique_id}.pt")
     
     # Test the model
     model.eval()
@@ -105,6 +118,10 @@ if __name__ == '__main__':
     args.world_size = world_size
     print(world_size)
     print(args)
+    losses = torch.zeros((args.epochs))
+    weight_norm = torch.zeros((args.epochs))
+    losses.share_memory_()
+    weight_norm.share_memory_()
     # Creates (world_size) number of processes
     mp.spawn(train, args=[args], nprocs=world_size)
     # train()
