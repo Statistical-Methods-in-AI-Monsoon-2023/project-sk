@@ -199,6 +199,7 @@ if __name__ == "__main__":
     print(mesh_x.shape)
     output = output.reshape((mesh_x.shape[0], mesh_y.shape[0], 2)).numpy()
     loss = output[..., 0]
+    loss = np.nan_to_num(loss, posinf=2*np.nanmax(loss), neginf=0)
     acc = output[..., 1]
     mesh_x = mesh_x.numpy()
     mesh_y = mesh_y.numpy()
@@ -214,6 +215,7 @@ if __name__ == "__main__":
     # print(loss.shape, acc.shape, mesh_x.shape, mesh_y.shape)
 
     # contour plot
+
     plt.contour(mesh_x, mesh_y, loss, cmap='RdGy',
                 levels=20, vmin=loss.min(), vmax=loss.max())
     plt.colorbar()
