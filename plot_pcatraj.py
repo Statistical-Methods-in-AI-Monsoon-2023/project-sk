@@ -130,7 +130,7 @@ def plot_trajectory(x_vals,y_vals):
 if __name__ == "__main__":
     args = parser.parse_args()
     filename = os.path.basename(args.folderpath)
-    npy_data = f"results/plot_npy/{filename}-pcatraj-{args.range}.npy"
+    npy_data = f"results/plot_npy/{filename}-pcatraj-{args.range}.npz"
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     nprocs = torch.cuda.device_count()
@@ -140,77 +140,76 @@ if __name__ == "__main__":
     x_vals, y_vals = give_proj(diff_concats, eigvecs)
     plot_trajectory(x_vals, y_vals)
 
-    if not os.path.exists(npy_data):
-        # calculate step size
-        x_min, x_max = np.min(x_vals), np.max(x_vals)
-        y_min, y_max = np.min(y_vals), np.max(y_vals)
-        x_std = np.std(x_vals)
-        y_std = np.std(y_vals)
-        x_min-=x_std
-        x_max+=x_std
-        y_min-=y_std
-        y_max+=y_std
-        print("x_min, x_max, y_min, y_max: ", x_min, x_max, y_min, y_max)
+    # calculate step size
+    x_min, x_max = np.min(x_vals), np.max(x_vals)
+    y_min, y_max = np.min(y_vals), np.max(y_vals)
+    x_std = np.std(x_vals)
+    y_std = np.std(y_vals)
+    x_min-=x_std
+    x_max+=x_std
+    y_min-=y_std
+    y_max+=y_std
+    print("x_min, x_max, y_min, y_max: ", x_min, x_max, y_min, y_max)
 
-        v_ten1 = eigvecs[0]
-        v_ten2 = eigvecs[1]
+    v_ten1 = eigvecs[0]
+    v_ten2 = eigvecs[1]
 
-        model = finalmodel
-        dirn1 = give_model(args)
-        # dirn1.to(device)
-        total_len = 0
-        for param, m_param in zip(dirn1.parameters(), model.parameters()):
-            param_len = param.reshape(-1).shape[0]
-            param.data = v_ten1[total_len:total_len+param_len].reshape(param.shape)
-            total_len += param_len
+    model = finalmodel
+    dirn1 = give_model(args)
+    # dirn1.to(device)
+    total_len = 0
+    for param, m_param in zip(dirn1.parameters(), model.parameters()):
+        param_len = param.reshape(-1).shape[0]
+        param.data = v_ten1[total_len:total_len+param_len].reshape(param.shape)
+        total_len += param_len
 
-        dirn2 = give_model(args)
-        total_len = 0
-        for param, m_param in zip(dirn2.parameters(), model.parameters()):
-            param_len = param.reshape(-1).shape[0]
-            param.data = v_ten2[total_len:total_len+param_len].reshape(param.shape)
-            total_len += param_len
+    dirn2 = give_model(args)
+    total_len = 0
+    for param, m_param in zip(dirn2.parameters(), model.parameters()):
+        param_len = param.reshape(-1).shape[0]
+        param.data = v_ten2[total_len:total_len+param_len].reshape(param.shape)
+        total_len += param_len
 
-        alpha = torch.linspace(x_min, x_max, args.range)
-        beta = torch.linspace(y_min, y_max, args.range)
-        mesh_x, mesh_y = torch.meshgrid(alpha, beta)
-        mesh = torch.cat([mesh_x.unsqueeze(0), mesh_y.unsqueeze(0)], 0).permute(1, 2, 0).reshape(-1, 2)
-        
-        num_per_proc = mesh.shape[0] // nprocs
-        steps = [mesh[i*num_per_proc:(i+1)*num_per_proc, :] for i in range(nprocs-1)]
-        steps.append(mesh[(nprocs-1)*(num_per_proc):, :])
-        indices = [torch.arange(i*num_per_proc, (i+1)*num_per_proc) for i in range(nprocs-1)]
-        indices.append(torch.arange((nprocs-1)*num_per_proc, mesh.shape[0]))
+    alpha = torch.linspace(x_min, x_max, args.range)
+    beta = torch.linspace(y_min, y_max, args.range)
+    mesh_x, mesh_y = torch.meshgrid(alpha, beta)
+    mesh = torch.cat([mesh_x.unsqueeze(0), mesh_y.unsqueeze(0)], 0).permute(1, 2, 0).reshape(-1, 2)
+    
+    num_per_proc = mesh.shape[0] // nprocs
+    steps = [mesh[i*num_per_proc:(i+1)*num_per_proc, :] for i in range(nprocs-1)]
+    steps.append(mesh[(nprocs-1)*(num_per_proc):, :])
+    indices = [torch.arange(i*num_per_proc, (i+1)*num_per_proc) for i in range(nprocs-1)]
+    indices.append(torch.arange((nprocs-1)*num_per_proc, mesh.shape[0]))
 
-        # Loss and Accuracy Values
-        output = torch.zeros(mesh.shape[0], 2)
-        output.share_memory_()
-        print(output.shape)
-        mp.set_start_method('spawn', force=True)
+    # Loss and Accuracy Values
+    output = torch.zeros(mesh.shape[0], 2)
+    output.share_memory_()
+    print(output.shape)
+    mp.set_start_method('spawn', force=True)
 
-        for i in range(nprocs):
-            p = mp.Process(target=vis, args=[i, model, dirn1, dirn2, criterion, steps[i], indices[i], output])
-            p.start()
-            workers.append(p)
+    for i in range(nprocs):
+        p = mp.Process(target=vis, args=[i, model, dirn1, dirn2, criterion, steps[i], indices[i], output])
+        p.start()
+        workers.append(p)
 
-        for i in range(nprocs):
-            workers[i].join()
-        
-        print(output.shape)
-        print(mesh_x.shape)
-        output = output.reshape((mesh_x.shape[0], mesh_y.shape[0], 2)).numpy()
-        loss = output[..., 0]
-        acc = output[..., 1]
-        mesh_x = mesh_x.numpy()
-        mesh_y = mesh_y.numpy()
-        np.savez(npy_data, loss=loss, acc=acc, mesh_x=mesh_x, mesh_y=mesh_y)
-    else:
-        output = np.load(npy_data)
-        loss,acc,mesh_x,mesh_y = output
-        loss = output['loss']
-        acc = output['acc']
-        mesh_x = output['mesh_x']
-        mesh_y = output['mesh_y']
+    for i in range(nprocs):
+        workers[i].join()
+    
+    print(output.shape)
+    print(mesh_x.shape)
+    output = output.reshape((mesh_x.shape[0], mesh_y.shape[0], 2)).numpy()
+    loss = output[..., 0]
+    acc = output[..., 1]
+    mesh_x = mesh_x.numpy()
+    mesh_y = mesh_y.numpy()
+    np.savez(npy_data, loss=loss, acc=acc, mesh_x=mesh_x, mesh_y=mesh_y)
+    
+    # output = np.load(npy_data)
+    # loss,acc,mesh_x,mesh_y = output
+    # loss = output['loss']
+    # acc = output['acc']
+    # mesh_x = output['mesh_x']
+    # mesh_y = output['mesh_y']
 
     # print(loss.shape, acc.shape, mesh_x.shape, mesh_y.shape)
 
@@ -224,5 +223,5 @@ if __name__ == "__main__":
     if args.show:
         plt.show()
     
-    plt.savefig(f"results/{args.model}-pca-contour.png")
+    plt.savefig(f"results/{filename}-{args.model}-pca-contour.png")
 
