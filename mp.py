@@ -77,7 +77,8 @@ def train(rank, args):
             target = target.to(rank)
             output = model(data)
             loss = F.cross_entropy(output, target)
-            losses.append(loss.item())
+            if(rank == 0):
+                losses.append(loss.item())
             loss.backward()
             optimizer.step()
             if(rank == 0):
