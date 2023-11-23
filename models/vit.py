@@ -54,12 +54,13 @@ class VIT(nn.Module):
         num_transformer_blocks = 6
         self.patch_size = P
         self.num_patches = self.img_size[0] * self.img_size[1] // (P ** 2)
+        self.pos_embeddings = nn.Parameter(torch.randn(1, self.num_patches, D))
         self.patch_embedding = nn.Linear(C*P**2, D)
         self.encoder_layers = []
         for _ in range(num_transformer_blocks):
             self.encoder_layers.append(Transformer(D))
         self.encoder = nn.Sequential(*self.encoder_layers)
-        self.final_proj = nn.Linear(self.num_patches * D, num_classes)
+        self.final_proj = nn.Linear(D, num_classes)
     
     def forward(self, img):
         '''
@@ -70,10 +71,10 @@ class VIT(nn.Module):
         patches = img.unfold(2, self.patch_size, self.patch_size).unfold(3, self.patch_size, self.patch_size) # (B, C, Nx, Ny, P, P)
         patches = patches.permute(0, 2, 3, 1, 4, 5) # (B, Nx, Ny, C, P, P)
         patches = patches.reshape(B, self.num_patches, -1)
-        patch_embed = self.patch_embedding(patches) # (B, N, D)
+        patch_embed = self.patch_embedding(patches) + self.pos_embeddings # (B, N, D)
         encoded = self.encoder(patch_embed) # (B, N, D)
-        # encoded = encoded.mean(dim = 1) # (B, D)
-        encoded = encoded.reshape(B, -1)
+        encoded = encoded.mean(dim = 1) # (B, D)
+        # encoded = encoded.reshape(B, -1)
         out_logits = self.final_proj(encoded) # (B, num_classes)
         
         return F.sigmoid(out_logits)
