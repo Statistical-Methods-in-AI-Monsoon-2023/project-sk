@@ -73,7 +73,7 @@ class VIT(nn.Module):
         patches = patches.permute(0, 2, 3, 1, 4, 5) # (B, Nx, Ny, C, P, P)
         patches = patches.reshape(B, self.num_patches, -1)
         patch_embed = self.patch_embedding(patches) + self.pos_embeddings # (B, N, D)
-        patch_embed = torch.cat([patch_embed, self.cls_token.reshape(1, 1, -1)], dim = 1)
+        patch_embed = torch.stack([patch_embed, self.cls_token.reshape(1, 1, -1)], dim = 1)
         encoded = self.encoder(patch_embed) # (B, N, D)
         encoded = encoded[:, -1] # (B, D)
         out_logits = self.final_proj(encoded) # (B, num_classes)
