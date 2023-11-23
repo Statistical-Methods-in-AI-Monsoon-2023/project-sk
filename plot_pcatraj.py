@@ -198,6 +198,7 @@ if __name__ == "__main__":
         
         print(output.shape)
         print(mesh_x.shape)
+        output = output.reshape((mesh_x.shape[0], mesh_y.shape[0], 2)).numpy()
         loss = output[..., 0]
         acc = output[..., 1]
         mesh_x = mesh_x.numpy()
