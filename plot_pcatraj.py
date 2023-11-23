@@ -198,14 +198,18 @@ if __name__ == "__main__":
         
         print(output.shape)
         print(mesh_x.shape)
-        np.savez(npy_data, loss = output[..., 0], acc = output[..., 1], mesh_x = mesh_x.numpy(), mesh_y = mesh_y.numpy())
+        loss = output[..., 0]
+        acc = output[..., 1]
+        mesh_x = mesh_x.numpy()
+        mesh_y = mesh_y.numpy()
+        np.savez(npy_data, loss=loss, acc=acc, mesh_x=mesh_x, mesh_y=mesh_y)
     else:
-        output = np.load(npy_data, allow_pickle=True)
+        output = np.load(npy_data)
         loss,acc,mesh_x,mesh_y = output
-        loss = loss[0]
-        acc = acc[0]
-        mesh_x = mesh_x[0]
-        mesh_y = mesh_y[0]
+        loss = output['loss']
+        acc = output['acc']
+        mesh_x = output['mesh_x']
+        mesh_y = output['mesh_y']
 
     # print(loss.shape, acc.shape, mesh_x.shape, mesh_y.shape)
 
