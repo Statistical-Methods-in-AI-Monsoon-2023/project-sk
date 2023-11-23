@@ -41,7 +41,7 @@ class Transformer(nn.Module):
         z = self.layer_norm2(y)
         z = self.linear(z) + y
 
-        return y # (B, N, D)
+        return z # (B, N, D)
 
 class VIT(nn.Module):
     def __init__(self):
