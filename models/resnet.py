@@ -39,12 +39,12 @@ class BasicBlockNoShort(nn.Module):
         self.bn2   = nn.BatchNorm2d(planes)
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
+        out = F.sigmoid(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
-        # out = F.relu(self.conv1(x))
+        # out = F.sigmoid(self.conv1(x))
         # out = (self.conv2(out))
 
-        out = F.relu(out)
+        out = F.sigmoid(out)
         return out
 
 
@@ -85,7 +85,7 @@ class ResNet(nn.Module):
         out = F.avg_pool2d(out, 8)
         out = out.view(out.size(0), -1)
         out = self.linear(out)
-        return torch.sigmoid(out)
+        return out
     
     def get_unique_id(self):
         return f"resnet-{self.block_type}"
