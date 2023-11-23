@@ -35,8 +35,8 @@ class Transformer(nn.Module):
         '''
         forward pass through the transformer
         '''
-        x = self.attention(x)
-        x = self.layer_norm(x) + x
+        y = self.layer_norm(x)
+        y = self.attention(y) + x
         return x # (B, N, D)
 
 class VIT(nn.Module):
