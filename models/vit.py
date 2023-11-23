@@ -27,15 +27,20 @@ class Attention(nn.Module):
 class Transformer(nn.Module):
     def __init__(self, D):
         super().__init__()
-        self.layer_norm = nn.LayerNorm(D)
+        self.layer_norm1 = nn.LayerNorm(D)
+        self.layer_norm2 = nn.LayerNorm(D)
         self.attention = Attention(D, D)
+        self.linear = nn.Linear(D, D)
 
     def forward(self, x):
         '''
         forward pass through the transformer
         '''
-        y = self.layer_norm(x)
+        y = self.layer_norm1(x)
         y = self.attention(y) + x
+        z = self.layer_norm2(y)
+        z = self.linear(z) + y
+
         return y # (B, N, D)
 
 class VIT(nn.Module):
@@ -44,9 +49,9 @@ class VIT(nn.Module):
         self.img_size = (32, 32)
         C = 3
         P = 4
-        D = 128
+        D = 64
         num_classes = 10
-        num_transformer_blocks = 2
+        num_transformer_blocks = 6
         self.patch_size = P
         self.num_patches = self.img_size[0] * self.img_size[1] // (P ** 2)
         self.patch_embedding = nn.Linear(C*P**2, D)
