@@ -59,7 +59,7 @@ class VIT(nn.Module):
         for _ in range(num_transformer_blocks):
             self.encoder_layers.append(Transformer(D))
         self.encoder = nn.Sequential(*self.encoder_layers)
-        self.final_proj = nn.Linear(D, num_classes)
+        self.final_proj = nn.Linear(self.num_patches * D, num_classes)
     
     def forward(self, img):
         '''
@@ -72,7 +72,8 @@ class VIT(nn.Module):
         patches = patches.reshape(B, self.num_patches, -1)
         patch_embed = self.patch_embedding(patches) # (B, N, D)
         encoded = self.encoder(patch_embed) # (B, N, D)
-        encoded = encoded.mean(dim = 1) # (B, D)
+        # encoded = encoded.mean(dim = 1) # (B, D)
+        encoded = encoded.reshape(B, -1)
         out_logits = self.final_proj(encoded) # (B, num_classes)
         
         return F.sigmoid(out_logits)
