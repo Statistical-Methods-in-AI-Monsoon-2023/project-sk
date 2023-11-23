@@ -99,7 +99,7 @@ if __name__ == "__main__":
             continue
         param.data = torch.randn_like(param.data)
         param.data = param.data / torch.linalg.norm(param.data)
-        param.data *= m_param
+        param.data *= torch.linalg.norm(m_param)
 
     dirn2 = give_model(args)
     # dirn2.to(device)
@@ -109,7 +109,7 @@ if __name__ == "__main__":
             continue
         param.data = torch.randn_like(param.data)
         param.data = param.data / torch.linalg.norm(param.data)
-        param.data *= m_param 
+        param.data *= torch.linalg.norm(m_param)
 
     alpha = torch.linspace(-1, 1, args.range)
     beta = torch.linspace(-1, 1, args.range)

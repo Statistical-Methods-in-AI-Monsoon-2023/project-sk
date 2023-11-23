@@ -130,7 +130,7 @@ def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output):
     vis_model = copy.deepcopy(model)
     dirn1.to(rank)
     dirn2.to(rank)
-    train_loader, _ = load_cifar10(128, 2)
+    train_loader, _ = load_cifar10(1024, 2)
     # print(vis_model.parameters().is_cuda())
     for s, step in enumerate(steps):
         # idx is [a, b]
@@ -160,7 +160,7 @@ if __name__ == "__main__":
             continue
         param.data = torch.randn_like(param.data)
         param.data = param.data / torch.linalg.norm(param.data)
-        param.data *= m_param
+        param.data *= torch.linalg.norm(m_param)
 
     dirn2 = give_model(args)
     # dirn2.to(device)
@@ -170,7 +170,7 @@ if __name__ == "__main__":
             continue
         param.data = torch.randn_like(param.data)
         param.data = param.data / torch.linalg.norm(param.data)
-        param.data *= m_param 
+        param.data *= torch.linalg.norm(m_param)
 
     alpha = torch.linspace(-1, 1, args.range)
     beta = torch.linspace(-1, 1, args.range)
