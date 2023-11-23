@@ -18,7 +18,7 @@ class Attention(nn.Module):
         k = self.key(x) # (B, N, Dout)
         v = self.value(x) # (B, N, Dout)
 
-        attention_logits = q @ k.T
+        attention_logits = q @ torch.transpose(k, 1, 2)
         attention_mask = F.softmax(attention_logits, dim=0)
         output = attention_mask @ v
 
