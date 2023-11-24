@@ -5,7 +5,6 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import Dataset
-
 import os
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
@@ -20,18 +19,47 @@ class IDD(Dataset):
     def __len__(self):
         return len(self.file_list)
 
+    def processAnnots(self, annot):
+        num_anns = len(annot)
+        data = torch.empty((num_anns, 6))
+        for i, ann in enumerate(annot):
+            vals = ann[:-1].split()
+            data[i, 0] = int(vals[0])
+            data[i, 1] = float(vals[1])
+            data[i, 2] = float(vals[2])
+            data[i, 3] = float(vals[3])
+            data[i, 4] = float(vals[4])
+            data[i, 5] = int(vals[5])
+        return data
+
     def __getitem__(self, idx):
         img_name = os.path.join(self.root_dir, self.file_list[idx])
         annot_file = os.path.join(self.root_dir, self.file_list[idx].split('.')[0]) + ".txt"
         image = Image.open(img_name).convert('RGB')
 
+
         f = open(annot_file)
         annots = f.readlines()
-
+        downsampled_size = [20, 20]
+        
         if self.transform:
-            image = self.transform(image)
+            image = self.transform(image) / 255
 
-        return image
+        if(len(annots) == 0):
+            return image, torch.zeros(downsampled_size)
+        
+        return image, torch.zeros(downsampled_size)
+        data = self.processAnnots(annots)
+
+
+        # data is in (cls, xc, yc, w, h, id) format
+        # convert to a heatmap of downsampled size and logit probs 
+        centers = data[:, 1:3]
+        pixels = centers * torch.tensor(downsampled_size)
+        pixels = pixels.to(torch.long).T
+        target_hm = torch.zeros(downsampled_size)#, dtype=torch.long)
+        target_hm[pixels[:, 0], pixels[:, 1]] = 1
+        return image, target_hm
     
 def load_idd(data_root, batch_size, num_workers, distributed=False):
 
@@ -56,17 +84,26 @@ def load_idd(data_root, batch_size, num_workers, distributed=False):
     return data_loader, None
 
 
-def load_mnist(batch_size):
+def load_mnist(batch_size, num_workers, distributed=False):
     # Define data transforms
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
     # Load and preprocess the MNIST dataset
-    train_dataset = MNIST(root='./data', train=True, transform=transform, download=True)
-    test_dataset = MNIST(root='./data', train=False, transform=transform)
-
-    train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size)
+    trainset = MNIST(root='./data', train=True, transform=transform, download=True)
+    testset = MNIST(root='./data', train=False, transform=transform)
     
+    kwargs = {'num_workers': num_workers, 'pin_memory': True}
+    
+    train_sampler = None
+    test_sampler = None
+
+    if(distributed):
+        train_sampler = DistributedSampler(trainset)
+        test_sampler = DistributedSampler(testset)
+
+    train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=False, **kwargs, sampler=train_sampler)
+    test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2, sampler=test_sampler)
+
     return train_loader, test_loader
 
 def load_cifar10(batch_size, num_workers, distributed=False):

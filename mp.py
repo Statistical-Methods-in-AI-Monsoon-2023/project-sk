@@ -7,7 +7,7 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from models import give_model, gen_unique_id
-from data import load_cifar10
+from data import load_cifar10, load_mnist
 import os
 from torch.distributed import init_process_group, destroy_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -24,7 +24,7 @@ parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight dec
 parser.add_argument('--optimizer', type=str, default='adam', help='Optimizer')
 parser.add_argument('--save_every', type=int, default=-1, help='Save every save_every iterations')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
-
+parser.add_argument('--dataset', type=str, default="cifar10", help='The dataset to train on',)
 
 def setup(rank, args):
     # Ininitalizes the process_group and makes this process a part of that group. 
@@ -38,11 +38,17 @@ def calc_weight_norm(model):
     w2 = sum([torch.sum(param ** 2).item() for param in model.parameters()])
     return math.sqrt(w2)
 
+def load_dataset(args):
+    if(args.dataset == 'cifar10'):
+        return load_cifar10(int(args.batch_size), 2, distributed=True)
+    elif(args.dataset == "mnist"):
+        return load_mnist(int(args.batch_size), 2, distributed=True)
+
 def train(rank, args):
 
     setup(rank, args)
 
-    train_loader, test_loader= load_cifar10(int(args.batch_size), 2, distributed=True)
+    train_loader, test_loader = load_dataset(args)
 
     # Create the ResNet model and optimizer
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
