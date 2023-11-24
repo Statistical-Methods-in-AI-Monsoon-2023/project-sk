@@ -47,7 +47,7 @@ class VIT(nn.Module):
     def __init__(self):
         super().__init__()
         self.img_size = (32, 32)
-        C = 3
+        C = 1
         P = 4
         D = 64
         num_classes = 10
