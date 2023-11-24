@@ -51,6 +51,7 @@ class BasicBlockNoShort(nn.Module):
 class ResNet(nn.Module):
     def __init__(self, margs="noshort", dataset="cifar10", num_blocks=[9,9,9], num_classes=10):
         super(ResNet, self).__init__()
+        # margs of the form size-short/noshort-filters_mag
         self.in_planes = 16
         
         if(dataset == "cifar10"):
@@ -60,20 +61,32 @@ class ResNet(nn.Module):
             self.channel_num = 1
             self.final_avg_pool = 7
 
-        self.block_type = margs
+        args = margs.split('-')
+
+        resnet_size = int(args[0])
+        self.block_type = args[1]
+        filters_mag = int(args[2])
+
+        if(resnet_size == 18):
+            num_blocks = [3, 3, 3]
+        elif(resnet_size == 56):
+            num_blocks = [9, 9, 9]
+        elif(resnet_size == 110):
+            num_blocks = [18, 18, 18]
+
         self.avg_pool = nn.AvgPool2d(self.final_avg_pool)
-        if margs == "short":
+        if self.block_type == "short":
             block = BasicBlock
-        elif margs == "noshort":
+        elif self.block_type == "noshort":
             block = BasicBlockNoShort
         else:
             raise ValueError("block_type must be one of 'short' or 'noshort'")
 
         self.conv1  = nn.Conv2d(self.channel_num, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1    = nn.BatchNorm2d(16)
-        self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)
+        self.layer1 = self._make_layer(block, 16*filters_mag, num_blocks[0], stride=1)
+        self.layer2 = self._make_layer(block, 32*filters_mag, num_blocks[1], stride=2)
+        self.layer3 = self._make_layer(block, 64(filters_mag), num_blocks[2], stride=2)
         self.linear = nn.Linear(64*block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
