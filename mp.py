@@ -62,6 +62,10 @@ def train(rank, args):
         optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+
+    # LR Scheduler as mentioned in the paper
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[150, 225, 275], gamma=0.1)
+    
     # Training loop
     num_epochs = args.epochs
     count = 0
@@ -92,6 +96,7 @@ def train(rank, args):
             
             if batch_idx % 100 == 0:
                 print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
+        scheduler.step()
         
         if(rank == 0):
             weight_norm.append(calc_weight_norm(model))
