@@ -57,9 +57,11 @@ def test_acc(model, test_loader, rank):
             pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum()
     
+    torch.distributed.all_reduce(tensor=correct, op=torch.distributed.ReduceOp.SUM)
     test_loss /= len(test_loader.dataset)
     accuracy = 100.0 * correct / len(test_loader.dataset)
-    print(f'Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy}%')
+    if(rank == 0):
+        print(f'Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy}%')
     return accuracy, test_loss
 
 def train(rank, args):
@@ -114,8 +116,8 @@ def train(rank, args):
             
             if batch_idx % 100 == 0:
                 print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
-                if(rank == 0):
-                    _, _ = test_acc(model, test_loader, rank)
+                # if(rank == 0):
+                _, _ = test_acc(model, test_loader, rank)
 
         scheduler.step()
         
