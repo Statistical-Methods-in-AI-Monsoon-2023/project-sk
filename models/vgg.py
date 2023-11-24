@@ -12,9 +12,8 @@ vgg_cfgs: Dict[str, List[Union[str, int]]] = {
 }
 
 
-def _make_layers(vgg_cfg: List[Union[str, int]], batch_norm: bool = False) -> nn.Sequential:
+def _make_layers(vgg_cfg: List[Union[str, int]], batch_norm: bool = False, in_channels : int = 3) -> nn.Sequential:
     layers = []
-    in_channels = 3
     for v in vgg_cfg:
         if v == "M":
             layers.append(nn.MaxPool2d((2, 2), (2, 2)))
@@ -34,20 +33,26 @@ def _make_layers(vgg_cfg: List[Union[str, int]], batch_norm: bool = False) -> nn
 
 
 class VGG(nn.Module):
-    def __init__(self, margs = "11", num_classes: int = 1000) -> None:
+    def __init__(self, margs = "11", dataset="cifar10", num_classes: int = 1000) -> None:
         super(VGG, self).__init__()
         
         """
         margs example: "11" or "11-bn"
         """
+
         margs = margs.split("-")
         self.vgg_id = "vgg"+margs[0]
         self.batch_norm = True if "bn" in margs else False
         if self.vgg_id not in vgg_cfgs:
             raise ValueError(f"Invalid config. Valid options are {list(vgg_cfgs.keys())}")
         vgg_cfg = vgg_cfgs[self.vgg_id]
+        
+        if(dataset == "cifar10"):
+            self.in_channels = 3
+        elif(dataset == "mnist"):
+            self.in_channels = 1
 
-        self.features = _make_layers(vgg_cfg, self.batch_norm)
+        self.features = _make_layers(vgg_cfg, self.batch_norm, self.in_channels)
 
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
 
