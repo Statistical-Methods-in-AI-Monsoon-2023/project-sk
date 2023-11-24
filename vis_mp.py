@@ -11,7 +11,7 @@ import copy
 import matplotlib.pyplot as plt
 from models import give_model, gen_unique_id
 from visfuncs  import interpolate, move1D, move2D
-from data import load_cifar10
+from data import load_cifar10, load_mnist
 import numpy as np
 import argparse
 import torch.multiprocessing as mp
@@ -22,6 +22,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--weight_path', type=str, help='Path to the weights file')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
 parser.add_argument('--range', type=int, default=20, help='In [-1, 1] the number of steps to take in one direction(same for both x and y). Higher the number, higher the resolution of the plot will be')
+parser.add_argument('--dataset', type=str, default="cifar10", help='Dataset to be used')
 
 def load_model_with_weights(path, device):
     model_init = torch.load(path, map_location=device)
@@ -36,6 +37,12 @@ def load_model_with_weights(path, device):
     model_init.eval()
 
     return model_init
+
+def load_dataset(args):
+    if(args.dataset == 'cifar10'):
+        return load_cifar10(256, 2, distributed=True)
+    elif(args.dataset == "mnist"):
+        return load_mnist(256, 2, distributed=True)
 
 @torch.no_grad()
 def give_loss_acc(dataloader, model, criterion, device):
@@ -62,13 +69,13 @@ def give_loss_acc(dataloader, model, criterion, device):
     return loss, acc
 
 
-def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output):
+def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
 
     model.to(rank)
     vis_model = copy.deepcopy(model)
     dirn1.to(rank)
     dirn2.to(rank)
-    train_loader, _ = load_cifar10(128, 2)
+    train_loader, _ = load_dataset(args)
 
     # print(vis_model.parameters().is_cuda())
     for s, step in enumerate(steps):
@@ -130,7 +137,7 @@ if __name__ == "__main__":
     mp.set_start_method('spawn', force=True)
 
     for i in range(nprocs):
-        p = mp.Process(target=vis, args=[i, model, dirn1, dirn2, criterion, steps[i], indices[i], output])
+        p = mp.Process(target=vis, args=[i, model, dirn1, dirn2, criterion, steps[i], indices[i], output, args])
         p.start()
         workers.append(p)
 
