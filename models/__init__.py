@@ -13,7 +13,7 @@ def give_model(args):
     if name == "resnet":
         return ResNet(margs, dataset=dataset)
     elif name == "vgg":
-        return VGG(margs)
+        return VGG(margs, dataset=dataset)
     elif name == "cnn":
         return CNN(dataset)
     elif name == 'vit':
