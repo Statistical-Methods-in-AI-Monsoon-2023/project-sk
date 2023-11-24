@@ -5,10 +5,10 @@ from torch import Tensor
 from torch import nn
 
 vgg_cfgs: Dict[str, List[Union[str, int]]] = {
-    "vgg11": [64, "M", 128, "M", 256, 256, "M", 512, 512, "M", 512, 512, "M"],
-    "vgg13": [64, 64, "M", 128, 128, "M", 256, 256, "M", 512, 512, "M", 512, 512, "M"],
-    "vgg16": [64, 64, "M", 128, 128, "M", 256, 256, 256, "M", 512, 512, 512, "M", 512, 512, 512, "M"],
-    "vgg19": [64, 64, "M", 128, 128, "M", 256, 256, 256, 256, "M", 512, 512, 512, 512, "M", 512, 512, 512, 512, "M"],
+    "vgg11": [64, "M", 128, "M", 256, 256, "M", 512, 512, "M", 512, 512],
+    "vgg13": [64, 64, "M", 128, 128, "M", 256, 256, "M", 512, 512, "M", 512, 512],
+    "vgg16": [64, 64, "M", 128, 128, "M", 256, 256, 256, "M", 512, 512, 512, "M", 512, 512, 512],
+    "vgg19": [64, 64, "M", 128, 128, "M", 256, 256, 256, 256, "M", 512, 512, 512, 512, "M", 512, 512, 512, 512],
 }
 
 
@@ -49,8 +49,10 @@ class VGG(nn.Module):
         
         if(dataset == "cifar10"):
             self.in_channels = 3
+            num_classes = 10
         elif(dataset == "mnist"):
             self.in_channels = 1
+            num_classes = 10
 
         self.features = _make_layers(vgg_cfg, self.batch_norm, self.in_channels)
 
