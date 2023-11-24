@@ -27,6 +27,8 @@ def gen_unique_id(args):
     argslist=vars(args).items()
     argslist=sorted(argslist)
     for k,v in argslist:
+        if(k == "weight_path"):
+            continue
         unique_id += f"{k}:{v}_"
     unique_id = unique_id[:-1]
     # unique_id+=f"date:{datetime.now().strftime('%d-%m-%Y-%H.%M.%S')}"
