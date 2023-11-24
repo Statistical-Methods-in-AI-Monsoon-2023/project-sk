@@ -6,17 +6,18 @@ from models.vit import VIT
 from datetime import datetime
 
 def give_model(args):
+    dataset = args.dataset
     args = args.model.split("-", 1)
     name = args[0]
     margs = args[1] if len(args) > 1 else ""
     if name == "resnet":
-        return ResNet(margs)
+        return ResNet(margs, dataset=dataset)
     elif name == "vgg":
         return VGG(margs)
     elif name == "cnn":
-        return CNN(args.dataset)
+        return CNN(dataset)
     elif name == 'vit':
-        return VIT(args.dataset)
+        return VIT(dataset)
     else:
         raise ValueError("Invalid model name")
 
