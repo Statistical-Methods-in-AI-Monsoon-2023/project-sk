@@ -14,9 +14,9 @@ def give_model(args):
     elif name == "vgg":
         return VGG(margs)
     elif name == "cnn":
-        return CNN()
+        return CNN(args.dataset)
     elif name == 'vit':
-        return VIT()
+        return VIT(args.dataset)
     else:
         raise ValueError("Invalid model name")
 

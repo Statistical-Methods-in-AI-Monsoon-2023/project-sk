@@ -10,9 +10,13 @@ import torch.nn.functional as F
 
 # Define the CNN model
 class CNN(nn.Module):
-    def __init__(self):
+    def __init__(self, dataset):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
+        if(dataset == 'cifar10'):
+            self.input_size = (3, 32, 32)
+        elif(dataset == 'mnist'):
+            self.input_size = (1, 28, 28)
+        self.conv1 = nn.Conv2d(self.input_size[0], 32, 3, padding=1)
         self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
         self.maxpool = nn.MaxPool2d(2)
         fc_dim = self.give_lin_layer_shape()
@@ -21,7 +25,8 @@ class CNN(nn.Module):
 
     @torch.no_grad()
     def give_lin_layer_shape(self):
-        x = torch.randn((1, 3, 32, 32))
+        c, h, w = self.input_size
+        x = torch.randn((1, c, h, w))
         x = self.maxpool(self.conv1(x))
         x = self.maxpool(self.conv2(x))
         x = x.reshape(1, -1)
