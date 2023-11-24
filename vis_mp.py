@@ -85,7 +85,7 @@ def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
                 k.data = i.data + a*d1.data + b*d2.data
 
         loss, acc = give_loss_acc(train_loader, vis_model, criterion, rank)
-        print(f"GPU {rank} : Loss {loss}, Acc {acc}")
+        print(f"GPU {rank}: Step Horz {a}, Vert {b} Loss {loss}, Acc {acc}")
         output[indices[s], 0] = loss
         output[indices[s], 1] = acc
 

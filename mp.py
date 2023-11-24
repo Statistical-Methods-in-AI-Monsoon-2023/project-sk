@@ -43,6 +43,24 @@ def load_dataset(args):
         return load_cifar10(int(args.batch_size), 2, distributed=True)
     elif(args.dataset == "mnist"):
         return load_mnist(int(args.batch_size), 2, distributed=True)
+    
+def test_acc(model, test_loader, rank):
+    model.eval()
+    test_loss = 0
+    correct = 0
+    with torch.no_grad():
+        for data, target in test_loader:
+            data = data.to(rank)
+            target = target.to(rank)
+            output = model(data)
+            test_loss += F.cross_entropy(output, target, reduction='sum').item()
+            pred = output.argmax(dim=1, keepdim=True)
+            correct += pred.eq(target.view_as(pred)).sum()
+    
+    test_loss /= len(test_loader.dataset)
+    accuracy = 100.0 * correct / len(test_loader.dataset)
+    print(f'Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy}%')
+    return accuracy, test_loss
 
 def train(rank, args):
 
@@ -65,7 +83,7 @@ def train(rank, args):
 
     # LR Scheduler as mentioned in the paper
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[150, 225, 275], gamma=0.1)
-    
+
     # Training loop
     num_epochs = args.epochs
     count = 0
@@ -96,6 +114,9 @@ def train(rank, args):
             
             if batch_idx % 100 == 0:
                 print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
+                if(rank == 0):
+                    _, _ = test_acc(model, test_loader, rank)
+
         scheduler.step()
         
         if(rank == 0):
@@ -118,6 +139,7 @@ def train(rank, args):
             test_loss += F.cross_entropy(output, target, reduction='sum').item()
             pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum()
+
     torch.distributed.all_reduce(tensor=correct, op=torch.distributed.ReduceOp.SUM)
     test_loss /= len(test_loader.dataset)
     accuracy = 100.0 * correct / len(test_loader.dataset)
