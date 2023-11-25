@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from models import give_model, gen_unique_id
 from data import load_cifar10, load_mnist
 import os
+import numpy as np
 from torch.distributed import init_process_group, destroy_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.multiprocessing as mp
@@ -31,7 +32,7 @@ def setup(rank, args):
     # MASTER_ADDR and MASTER_PORT are required for the processes to communicate to the master node
 
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '3003'
+    os.environ['MASTER_PORT'] = '3001'
     init_process_group('nccl', rank=rank, world_size=args.world_size)
 
 def calc_weight_norm(model):
@@ -45,7 +46,6 @@ def load_dataset(args):
         return load_mnist(int(args.batch_size), 2, distributed=True)
     
 def test_acc(model, test_loader, rank):
-    model.eval()
     test_loss = 0
     correct = 0
     with torch.no_grad():
@@ -64,6 +64,14 @@ def test_acc(model, test_loader, rank):
         print(f'Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy}%')
     return accuracy, test_loss
 
+def test(net):
+    total_params = 0
+
+    for x in filter(lambda p: p.requires_grad, net.parameters()):
+        total_params += torch.prod(torch.tensor(x.data.shape))
+    print("Total number of params", total_params)
+    print("Total layers", len(list(filter(lambda p: p.requires_grad and len(p.data.size())>1, net.parameters()))))
+
 def train(rank, args):
 
     setup(rank, args)
@@ -74,6 +82,7 @@ def train(rank, args):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     model = give_model(args).to(device)
+    test(model)
     model_unique_id = gen_unique_id(args)
     # Create a DDP instance
     model.to(rank)
@@ -81,10 +90,10 @@ def train(rank, args):
     if args.optimizer == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        optimizer = optim.SGD(model.parameters(), momentum = 0.9, lr=args.lr, weight_decay=args.weight_decay)
 
     # LR Scheduler as mentioned in the paper
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[150, 225, 275], gamma=0.1)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 150], gamma=0.1)
 
     # Training loop
     num_epochs = args.epochs
@@ -111,12 +120,10 @@ def train(rank, args):
                 losses.append(loss.item())
             loss.backward()
             optimizer.step()
-            if(rank == 0):
-                losses.append(loss.item())
             
             if batch_idx % 100 == 0:
                 print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
-                # if(rank == 0):
+                #if(rank == 0):
                 _, _ = test_acc(model, test_loader, rank)
 
         scheduler.step()
