@@ -2,6 +2,7 @@ from models.resnet import ResNet
 from models.vgg import VGG
 from models.cnn import CNN
 from models.vit import VIT
+from models.mlp import MLP
 
 from datetime import datetime
 
@@ -18,6 +19,8 @@ def give_model(args):
         return CNN(dataset)
     elif name == 'vit':
         return VIT(dataset)
+    elif name == "mlp":
+        return MLP()
     else:
         raise ValueError("Invalid model name")
 

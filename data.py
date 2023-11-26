@@ -10,6 +10,20 @@ from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 
+class XOR(Dataset):
+    def __init__(self):
+        self.x = torch.tensor([[0, 0],
+                               [1, 0],
+                               [0, 1],
+                               [1, 1]])
+        self.y = torch.tensor([0, 1, 1, 0])
+
+    def __len__(self):
+        return len(self.y)
+
+    def __getitem__(self, idx):
+        return self.x[idx], self.y[idx]
+
 class IDD(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
@@ -70,7 +84,7 @@ def load_idd(data_root, batch_size, num_workers, distributed=False):
     ])
 
     # Create an instance of the CustomDataset
-    trainset = IDD(root_dir=data_root, transform=transform)    
+    trainset = IDD(root_dir=data_root, transform=transform)
     kwargs = {'num_workers': num_workers, 'pin_memory': True}
     train_sampler = None
     test_sampler = None
@@ -131,6 +145,25 @@ def load_cifar10(batch_size, num_workers, distributed=False):
             transforms.ToTensor(),
             normalize,
         ]))
+
+    kwargs = {'num_workers': num_workers, 'pin_memory': True}
+    
+    train_sampler = None
+    test_sampler = None
+
+    if(distributed):
+        train_sampler = DistributedSampler(trainset)
+        test_sampler = DistributedSampler(testset)
+
+    train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=False, **kwargs, sampler=train_sampler)
+    test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2, sampler=test_sampler)
+
+    return train_loader, test_loader
+
+def load_xor(batch_size, num_workers, distributed=False):
+    
+    trainset = XOR()
+    testset = XOR()
 
     kwargs = {'num_workers': num_workers, 'pin_memory': True}
     
