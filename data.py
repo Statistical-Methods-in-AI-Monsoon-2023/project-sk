@@ -114,9 +114,24 @@ def load_cifar10(batch_size, num_workers, distributed=False):
                                          std=[x/255.0 for x in [63.0, 62.1, 66.7]])
         ])
     
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform)
-    
+    #trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+    #testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform)
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, transform=transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, 4),
+            transforms.ToTensor(),
+            normalize,
+        ]), download=True)
+
+    # trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
+            transforms.ToTensor(),
+            normalize,
+        ]))
+
     kwargs = {'num_workers': num_workers, 'pin_memory': True}
     
     train_sampler = None
