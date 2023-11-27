@@ -15,7 +15,7 @@ class XOR(Dataset):
         self.x = torch.tensor([[0, 0],
                                [1, 0],
                                [0, 1],
-                               [1, 1]])
+                               [1, 1]]).to(torch.float32)
         self.y = torch.tensor([0, 1, 1, 0])
 
     def __len__(self):
@@ -178,3 +178,11 @@ def load_xor(batch_size, num_workers, distributed=False):
     test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2, sampler=test_sampler)
 
     return train_loader, test_loader
+
+def load_dataset(args, distributed=True):
+    if(args.dataset == 'cifar10'):
+        return load_cifar10(args.batch_size, 4, distributed=distributed)
+    elif(args.dataset == "mnist"):
+        return load_mnist(args.batch_size, 4, distributed=distributed)
+    elif(args.dataset == "xor"):
+        return load_xor(args.batch_size, 4, distributed=distributed)

@@ -7,7 +7,7 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from models import give_model, gen_unique_id
-from data import load_cifar10, load_mnist
+from data import load_cifar10, load_mnist, load_xor
 import os
 import numpy as np
 from torch.distributed import init_process_group, destroy_process_group
@@ -41,9 +41,11 @@ def calc_weight_norm(model):
 
 def load_dataset(args):
     if(args.dataset == 'cifar10'):
-        return load_cifar10(int(args.batch_size), 2, distributed=True)
+        return load_cifar10(int(args.batch_size), 4, distributed=True)
     elif(args.dataset == "mnist"):
-        return load_mnist(int(args.batch_size), 2, distributed=True)
+        return load_mnist(int(args.batch_size), 4, distributed=True)
+    elif(args.dataset == "xor"):
+        return load_xor(int(args.batch_size), 4, distributed=True)
     
 def test_acc(model, test_loader, rank):
     test_loss = 0
@@ -93,7 +95,7 @@ def train(rank, args):
         optimizer = optim.SGD(model.parameters(), momentum = 0.9, lr=args.lr, weight_decay=args.weight_decay)
 
     # LR Scheduler as mentioned in the paper
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 150], gamma=0.1)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[150, 225, 275], gamma=0.1)
 
     # Training loop
     num_epochs = args.epochs
@@ -124,7 +126,7 @@ def train(rank, args):
             if batch_idx % 100 == 0:
                 print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
                 #if(rank == 0):
-                _, _ = test_acc(model, test_loader, rank)
+        _, _ = test_acc(model, test_loader, rank)
 
         scheduler.step()
         

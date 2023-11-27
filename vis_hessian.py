@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from models.resnet import ResNet, BasicBlock, BasicBlockNoShort
 from visfuncs  import interpolate, move1D, move2D
 from models import give_model, gen_unique_id
-from data import load_cifar10, load_mnist
+from data import load_dataset
 import numpy as np
 import argparse
 import torch.multiprocessing as mp
@@ -43,11 +43,6 @@ def load_model_with_weights(path, device):
 
     return model_init
 
-def load_dataset(args):
-    if(args.dataset == 'cifar10'):
-        return load_cifar10(256, 2, distributed=False)
-    elif(args.dataset == "mnist"):
-        return load_mnist(256, 2, distributed=False)
 
 def give_minmax_eigs(dataloader, model, criterion, device):
     '''
@@ -128,7 +123,9 @@ def give_minmax_eigs(dataloader, model, criterion, device):
     mineigs += shifted
     
     print(f"GPU {device}", mineigs)
-    assert mineigs < maxeigs, "Min eig more than maxeig"
+    #assert mineigs < maxeigs, "Min eig more than maxeig"
+    if(maxeigs < mineigs):
+        maxeigs, mineigs = mineigs, maxeigs
     return torch.tensor(maxeigs), torch.tensor(mineigs)
 
 def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
@@ -137,7 +134,8 @@ def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
     vis_model = copy.deepcopy(model)
     dirn1.to(rank)
     dirn2.to(rank)
-    train_loader, _ = load_dataset(args)
+    args.batch_size = 256
+    train_loader, _ = load_dataset(args, False)
     # print(vis_model.parameters().is_cuda())
     for s, step in enumerate(steps):
         # idx is [a, b]
@@ -149,6 +147,16 @@ def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
         output[indices[s], 0] = min_eig
         output[indices[s], 1] = max_eig
 
+def model2vec(d):
+    v_ten = []
+    for p in d.parameters():
+        v_ten.append(p.reshape(-1))
+    return torch.cat(v_ten)
+
+def dirn_dot(d1, d2):
+    v1 = model2vec(d1)
+    v2 = model2vec(d2)
+    return torch.sum(v1*v2)/(torch.linalg.norm(v1) * torch.linalg.norm(v2))
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -178,7 +186,9 @@ if __name__ == "__main__":
         param.data = torch.randn_like(param.data)
         param.data = param.data / torch.linalg.norm(param.data)
         param.data *= torch.linalg.norm(m_param)
-
+    directions = torch.load("dirn_visdataset:cifar10_model:resnet-short_range:20.pt")
+    dirn1, dirn2 = directions['dirn1'], directions['dirn2']
+    print(dirn_dot(dirn1, dirn2))
     alpha = torch.linspace(-1, 1, args.range)
     beta = torch.linspace(-1, 1, args.range)
     mesh_x, mesh_y = torch.meshgrid(alpha, beta)

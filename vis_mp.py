@@ -10,8 +10,9 @@ import torch.nn.functional as F
 import copy
 import matplotlib.pyplot as plt
 from models import give_model, gen_unique_id
+from models.resnet import ResNet, BasicBlockNoShort
 from visfuncs  import interpolate, move1D, move2D
-from data import load_cifar10, load_mnist
+from data import load_dataset
 import numpy as np
 import argparse
 import torch.multiprocessing as mp
@@ -26,23 +27,19 @@ parser.add_argument('--dataset', type=str, default="cifar10", help='Dataset to b
 
 def load_model_with_weights(path, device):
     model_init = torch.load(path, map_location=device)
+    #print("adf")
     model_init = model_init['model']
-    # try:
-    #     net = ResNet(BasicBlockNoShort, [9,9,9])
-    #     net.load_state_dict(model_init['state_dict'])
-    #     net.eval()
-    #     return net
-    # except:
-    #     pass
-    model_init.eval()
+    #try:
+    #net = ResNet(BasicBlockNoShort, [9,9,9])
+    #net.load_state_dict(model_init['state_dict'])
+    #net.eval()
+    #return net
+    #except:
+    #    pass
+   # model_init.eval()
 
     return model_init
 
-def load_dataset(args):
-    if(args.dataset == 'cifar10'):
-        return load_cifar10(256, 2, distributed=True)
-    elif(args.dataset == "mnist"):
-        return load_mnist(256, 2, distributed=True)
 
 @torch.no_grad()
 def give_loss_acc(dataloader, model, criterion, device):
@@ -75,20 +72,30 @@ def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
     vis_model = copy.deepcopy(model)
     dirn1.to(rank)
     dirn2.to(rank)
-    train_loader, _ = load_dataset(args)
-
+    args.batch_size = 256
+    train_loader, _ = load_dataset(args, False)
     # print(vis_model.parameters().is_cuda())
     for s, step in enumerate(steps):
         # idx is [a, b]
         a, b = step
         for i, d1, d2, k in zip(model.parameters(), dirn1.parameters(), dirn2.parameters(), vis_model.parameters()):
-                k.data = i.data + a*d1.data + b*d2.data
+            k.data = i.data + a*d1.data + b*d2.data
 
         loss, acc = give_loss_acc(train_loader, vis_model, criterion, rank)
         print(f"GPU {rank}: Step Horz {a}, Vert {b} Loss {loss}, Acc {acc}")
         output[indices[s], 0] = loss
         output[indices[s], 1] = acc
 
+def model2vec(d):
+    v_ten = []
+    for p in d.parameters():
+        v_ten.append(p.reshape(-1))
+    return torch.cat(v_ten)
+@torch.no_grad()
+def dirn_dot(d1, d2):
+    v1 = model2vec(d1)
+    v2 = model2vec(d2)
+    return torch.sum(v1*v2)/(torch.linalg.norm(v1) * torch.linalg.norm(v2))
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -100,25 +107,31 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
 
     dirn1 = give_model(args)
-    # dirn1.to(device)
+    dirn2 = give_model(args)
     for param, m_param in zip(dirn1.parameters(), model.parameters()):
         if(len(m_param.shape) == 1):
-            param = m_param
+            param.data = torch.zeros_like(m_param)
             continue
         param.data = torch.randn_like(param.data)
         param.data = param.data / torch.linalg.norm(param.data)
         param.data *= torch.linalg.norm(m_param)
-
-    dirn2 = give_model(args)
-    # dirn2.to(device)
-    for param, m_param in zip(dirn2.parameters(), model.parameters()):
+        #print(param.data.grad_fn)
+    
+    for param, d1_param, m_param in zip(dirn2.parameters(), dirn1.parameters(), model.parameters()):
         if(len(m_param.shape) == 1):
-            param = m_param
+            param.data = torch.zeros_like(m_param)
             continue
-        param.data = torch.randn_like(param.data)
+        rand = torch.randn_like(param.data.reshape(-1))
+        rand /= torch.linalg.norm(rand)
+        dot_rand = d1_param.reshape(-1)[1:] @ rand[1:]
+        rand[0] = -dot_rand/d1_param.reshape(-1)[0]
+        param.data = rand.reshape(m_param.shape)
         param.data = param.data / torch.linalg.norm(param.data)
         param.data *= torch.linalg.norm(m_param)
-
+        #print(param.data.reshape(-1) @ d1_param.data
+    
+    print(dirn_dot(dirn1, dirn2))    
+    torch.save({"dirn1": dirn1, "dirn2" : dirn2}, f"dirn_vis{gen_unique_id(args)}.pt")
     alpha = torch.linspace(-1, 1, args.range)
     beta = torch.linspace(-1, 1, args.range)
     mesh_x, mesh_y = torch.meshgrid(alpha, beta)

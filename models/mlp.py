@@ -17,8 +17,11 @@ class MLP(nn.Module):
             # self.input_size = (3, 32, 32)
         # elif(dataset == 'mnist'):
             # self.input_size = (1, 28, 28)
-        self.lin1 = nn.Linear(2, 1)
+        self.lin1 = nn.Linear(2, 2)
+        self.lin2 = nn.Linear(2, 2)
+
         
     def forward(self, x):
-        x = self.lin1(x)
+        x = F.relu(self.lin1(x))
+        x = self.lin2(x)
         return F.sigmoid(x)
