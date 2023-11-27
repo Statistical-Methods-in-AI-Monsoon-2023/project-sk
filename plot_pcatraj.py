@@ -21,11 +21,13 @@ from models import give_model
 
 
 parser = argparse.ArgumentParser(description='Plot loss and accuracy')
-parser.add_argument('--folderpath', type=str)
-parser.add_argument('--range', type=int, default=20)
+parser.add_argument('--weight_path', type=str, help="path to the weight folder")
+parser.add_argument('--steps', type=int, default=20)
 parser.add_argument('--show', action='store_true')
 parser.add_argument('--json', action='store_true')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
+parser.add_argument('--include_bn', type=bool, help='To include the batch norm in the parameters',default=True)
+
 
 finalmodel = None
 
@@ -54,18 +56,21 @@ def give_loss_acc(dataloader, model, criterion, device):
     return loss, acc
 
 
-def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output):
+def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
 
     model.to(rank)
     vis_model = copy.deepcopy(model)
     dirn1.to(rank)
     dirn2.to(rank)
     train_loader, _ = load_cifar10(128, 2)
-    # print(vis_model.parameters().is_cuda())
+
     for s, step in enumerate(steps):
         # idx is [a, b]
         a, b = step
         for i, d1, d2, k in zip(model.parameters(), dirn1.parameters(), dirn2.parameters(), vis_model.parameters()):
+                if not args.include_bn:
+                    if(len(i.shape) == 1):
+                        continue
                 k.data = i.data + a*d1.data + b*d2.data
         loss, acc = give_loss_acc(train_loader, vis_model, criterion, rank)
         print(f"GPU {rank} : Loss {loss}, Acc {acc}")
@@ -80,13 +85,23 @@ def get_eigvecs(args):
             model = torch.load(os.path.join(args.folderpath, file), map_location=device)
             model.eval()
             models.append(model)
+
     global finalmodel
     finalmodel = models[-1]
     concats = []
+    
     for i in range(len(models)):
         model = models[i]
         concat = [param.reshape(-1) for param in model.parameters()]
+        filter = []
         concat = torch.cat(concat).cpu().detach().numpy()
+        if not args.include_bn:
+            for p in model.parameters():
+                fn = torch.zeros_like if len(p.shape) == 1 else torch.ones_like
+                filter.append(fn(p).reshape(-1))
+            filter_concat = torch.cat(filter).cpu().detach().numpy()
+            concat = concat * filter
+
         concats.append(concat)
 
     diff_concats = []
@@ -103,16 +118,19 @@ def get_eigvecs(args):
     diff_concats = torch.tensor(diff_concats).to(device)
     eigvecs = torch.tensor(eigvecs).to(device)
     eigvecs = eigvecs / torch.linalg.norm(eigvecs, dim=1).reshape(-1, 1)
+
+    # appending zeros for the last difference (that is the difference of the final weights with itself)
+    diff_concats.append(torch.zeros_like(diff_concats[0]))
     return diff_concats, eigvecs
 
 def give_proj(diff_concats, eigvecs):
     x_vals, y_vals = eigvecs @ diff_concats.T
     x_vals = x_vals.detach().cpu().numpy()
     y_vals = y_vals.detach().cpu().numpy()
-
     return x_vals, y_vals
 
 def plot_trajectory(x_vals,y_vals):
+
     print(x_vals.shape, y_vals.shape)
     print(x_vals, y_vals)
 
@@ -134,9 +152,8 @@ if __name__ == "__main__":
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     nprocs = torch.cuda.device_count()
-    workers = []
     criterion = nn.CrossEntropyLoss()
-    diff_concats, eigvecs=get_eigvecs(args)
+    diff_concats, eigvecs = get_eigvecs(args)
     x_vals, y_vals = give_proj(diff_concats, eigvecs)
     plot_trajectory(x_vals, y_vals)
 
@@ -145,18 +162,18 @@ if __name__ == "__main__":
     y_min, y_max = np.min(y_vals), np.max(y_vals)
     x_std = np.std(x_vals)
     y_std = np.std(y_vals)
-    x_min-=x_std
-    x_max+=x_std
-    y_min-=y_std
-    y_max+=y_std
+    x_min -= x_std
+    x_max += x_std
+    y_min -= y_std
+    y_max += y_std
     print("x_min, x_max, y_min, y_max: ", x_min, x_max, y_min, y_max)
 
     v_ten1 = eigvecs[0]
     v_ten2 = eigvecs[1]
 
     model = finalmodel
+
     dirn1 = give_model(args)
-    # dirn1.to(device)
     total_len = 0
     for param, m_param in zip(dirn1.parameters(), model.parameters()):
         param_len = param.reshape(-1).shape[0]
@@ -170,8 +187,8 @@ if __name__ == "__main__":
         param.data = v_ten2[total_len:total_len+param_len].reshape(param.shape) #* torch.linalg.norm(m_param)
         total_len += param_len
 
-    alpha = torch.linspace(x_min, x_max, args.range)
-    beta = torch.linspace(y_min, y_max, args.range)
+    alpha = torch.linspace(x_min, x_max, args.steps)
+    beta = torch.linspace(y_min, y_max, args.steps)
     mesh_x, mesh_y = torch.meshgrid(alpha, beta)
     mesh = torch.cat([mesh_x.unsqueeze(0), mesh_y.unsqueeze(0)], 0).permute(1, 2, 0).reshape(-1, 2)
     
@@ -186,9 +203,10 @@ if __name__ == "__main__":
     output.share_memory_()
     print(output.shape)
     mp.set_start_method('spawn', force=True)
-
+    
+    workers = []
     for i in range(nprocs):
-        p = mp.Process(target=vis, args=[i, model, dirn1, dirn2, criterion, steps[i], indices[i], output])
+        p = mp.Process(target=vis, args=[i, model, dirn1, dirn2, criterion, steps[i], indices[i], output, args])
         p.start()
         workers.append(p)
 
