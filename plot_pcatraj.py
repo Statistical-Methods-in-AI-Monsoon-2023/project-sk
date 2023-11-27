@@ -108,7 +108,7 @@ def get_eigvecs(args):
 
     for i in range(len(concats) - 1):
         diff_concats.append(concats[i] - concats[-1])
-    diff_concats.append(torch.zeros_like(diff_concats[0]))
+    diff_concats.append(np.zeros_like(diff_concats[0]))
     
     diff_concats = np.array(diff_concats)
     print(diff_concats.shape)
