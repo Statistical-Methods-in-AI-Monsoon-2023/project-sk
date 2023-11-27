@@ -4,11 +4,11 @@ import * as TWEEN from 'tween'
 import { update_physics } from './physics.js'
 
 function update(delta) {
-	
+
 	update_physics(delta)
 	TWEEN.update()
 
-	const {orbit_cam, orbit} = world
+	const { orbit_cam, orbit } = world
 
 	// zooming
 	if (world.controls.zoom_in) {
@@ -31,7 +31,7 @@ function action() {
 	let lastElapsedTime = 0
 	function tick() {
 		requestAnimationFrame(tick)
-		const { renderer, scene, camera } = world
+		const { renderer, scene, camera, css_renderer } = world
 
 		const elapsedTime = clock.getElapsedTime()
 		const delta = elapsedTime - lastElapsedTime
@@ -40,6 +40,7 @@ function action() {
 		update(delta)
 
 		renderer.render(scene, camera)
+		css_renderer.render(scene, camera)
 	}
 	tick()
 }

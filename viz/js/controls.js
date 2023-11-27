@@ -35,10 +35,20 @@ function init_keys() {
 }
 
 function init_orbit() {
-	const { orbit_cam, renderer } = world
-	const orbit = new OrbitControls(orbit_cam, renderer.domElement)
+	const { orbit_cam, css_renderer } = world
+	const orbit = new OrbitControls(orbit_cam, css_renderer.domElement)
 	orbit.enableKeys = true
 	orbit.enableDamping = true
+
+	// block iframe events when moving
+	const blocker = document.getElementById('blocker')
+	blocker.style.display = 'none'
+	orbit.addEventListener('start', function () {
+		blocker.style.display = ''
+	})
+	orbit.addEventListener('end', function () {
+		blocker.style.display = 'none'
+	})
 
 	world.orbit = orbit
 

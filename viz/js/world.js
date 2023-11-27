@@ -9,6 +9,7 @@ const world = {
 		right: false,
 	},
 	renderer: null,
+	css_renderer: null,
 	camera: null,
 	orbit_cam: null,
 	scene: null,
@@ -41,6 +42,8 @@ const world = {
 	Ammo: null,
 	physics: {},
 	origin: new THREE.Vector3(-0.5, 0, -0.5),
+	
+	page: null,
 }
 
 const globals = {

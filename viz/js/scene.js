@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { world } from './world.js'
 import { add_plot, load_model_name } from './plot.js'
+import { CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js'
 
 function add_ground() {
 	const { scene } = world
@@ -21,7 +22,7 @@ function add_ground() {
 	world.ground = ground
 }
 
-function add_skybox(){
+function add_skybox() {
 	const loader = new THREE.CubeTextureLoader()
 	const texture = loader.load([
 		'./skybox/back.png',
@@ -68,11 +69,35 @@ function add_lights() {
 	// setInterval(light_move, 10)
 }
 
+function add_page() {
+	const { scene } = world
+
+	const div = document.createElement('div')
+	div.style.width = '480px'
+	div.style.height = '360px'
+	div.style.backgroundColor = '#000'
+
+	const iframe = document.createElement('iframe')
+	iframe.style.width = '480px'
+	iframe.style.height = '360px'
+	iframe.style.border = '0px'
+	iframe.src = "https://jtuckerk.github.io/loss_landscape.html"
+	div.appendChild(iframe)
+
+	const page = new CSS3DObject(div)
+	page.scale.set(0.01, 0.01, 0.01)
+	page.position.set(-4, 0, 0)
+	scene.add(page)
+
+	world.page = page
+}
+
 function build_scene() {
 	// add_ground()
 	add_skybox()
 	add_plot()
 	load_model_name()
+	add_page()
 }
 
 export { build_scene, add_lights }

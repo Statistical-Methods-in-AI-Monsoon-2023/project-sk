@@ -12,6 +12,14 @@
 			width: 100%;
 			height: 100%;
 		}
+
+		#blocker {
+			position: absolute;
+			top: 0;
+			left: 0;
+			bottom: 0;
+			right: 0;
+		}
 	</style>
 	<script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
 
@@ -32,6 +40,8 @@
 </head>
 
 <body>
+	<div id="container"></div>
+	<div id="blocker"></div>
 	<script type="module" src="js/main.js"></script>
 </body>
 

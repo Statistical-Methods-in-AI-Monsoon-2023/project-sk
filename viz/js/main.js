@@ -25,7 +25,6 @@ async function main() {
 	await load_assets()
 	init_gui()
 	build_scene()
-	// await init_physics()
 	init_cameras()
 	init_controls()
 	add_lights()
