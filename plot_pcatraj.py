@@ -80,9 +80,9 @@ def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
 
 def get_eigvecs(args):
     models = []
-    for file in os.listdir(args.folderpath):
+    for file in os.listdir(args.weight_path):
         if file.endswith(".pt"):
-            model = torch.load(os.path.join(args.folderpath, file), map_location=device)
+            model = torch.load(os.path.join(args.weight_path, file), map_location=device)
             model.eval()
             models.append(model)
 
@@ -147,7 +147,7 @@ def plot_trajectory(x_vals,y_vals):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    filename = os.path.basename(args.folderpath)
+    filename = os.path.basename(args.weight_path)
     npy_data = f"results/plot_npy/{filename}-pcatraj-{args.range}.npz"
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
