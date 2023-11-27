@@ -26,6 +26,7 @@ parser.add_argument('--steps', type=int, default=20)
 parser.add_argument('--show', action='store_true')
 parser.add_argument('--json', action='store_true')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
+parser.add_argument('--dataset', type=str, default="cifar10", help='Dataset the model was trained on', required=True)
 parser.add_argument('--include_bn', type=bool, help='To include the batch norm in the parameters',default=True)
 
 
