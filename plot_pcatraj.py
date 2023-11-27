@@ -108,11 +108,12 @@ def get_eigvecs(args):
 
     for i in range(len(concats) - 1):
         diff_concats.append(concats[i] - concats[-1])
+    diff_concats.append(torch.zeros_like(diff_concats[0]))
     
     diff_concats = np.array(diff_concats)
     print(diff_concats.shape)
     pca = PCA(n_components=2)
-    pca.fit(diff_concats)
+    pca.fit(diff_concats[:-1, :])
     eigvecs = pca.components_
     print("Variances: ", pca.explained_variance_ratio_)
     diff_concats = torch.tensor(diff_concats).to(device)
@@ -120,7 +121,6 @@ def get_eigvecs(args):
     eigvecs = eigvecs / torch.linalg.norm(eigvecs, dim=1).reshape(-1, 1)
 
     # appending zeros for the last difference (that is the difference of the final weights with itself)
-    diff_concats.append(torch.zeros_like(diff_concats[0]))
     return diff_concats, eigvecs
 
 def give_proj(diff_concats, eigvecs):
