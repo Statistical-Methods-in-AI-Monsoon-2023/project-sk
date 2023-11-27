@@ -148,7 +148,7 @@ def plot_trajectory(x_vals,y_vals):
 if __name__ == "__main__":
     args = parser.parse_args()
     filename = os.path.basename(args.weight_path)
-    npy_data = f"results/plot_npy/{filename}-pcatraj-{args.range}.npz"
+    npy_data = f"results/plot_npy/{filename}-pcatraj-{args.steps}.npz"
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     nprocs = torch.cuda.device_count()
