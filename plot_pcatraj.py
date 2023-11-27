@@ -81,8 +81,8 @@ def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
 
 def get_eigvecs(args):
     models = []
-    sorted = sorted(os.listdir(args.weight_path), key=lambda x: int(os.path.splitext(x)[0]))
-    for file in os.listdir(sorted):
+    fsorted = sorted(os.listdir(args.weight_path), key=lambda x: int(os.path.splitext(x)[0]))
+    for file in os.listdir(fsorted):
         if file.endswith(".pt"):
             model = torch.load(os.path.join(args.weight_path, file), map_location=device)
             model.eval()
