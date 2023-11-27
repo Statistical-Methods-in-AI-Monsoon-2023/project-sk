@@ -83,11 +83,11 @@ class ResNet(nn.Module):
             self.channel_num = 1
             self.final_avg_pool = 7
 
-        #args = margs.split('-')
+        args = margs.split('-')
 
-        resnet_size = 56#int(args[0])
-        self.block_type = margs
-        filters_mag = 1#int(args[2])
+        resnet_size = int(args[0])
+        self.block_type = args[1]
+        filters_mag = int(args[2])
 
         if(resnet_size == 18):
             num_blocks = [3, 3, 3]
@@ -96,7 +96,7 @@ class ResNet(nn.Module):
         elif(resnet_size == 110):
             num_blocks = [18, 18, 18]
 
-#       self.avg_pool = nn.AvgPool2d(self.final_avg_pool)
+        self.avg_pool = nn.AvgPool2d(self.final_avg_pool)
         if self.block_type == "short":
             print("short")
             block = BasicBlock
@@ -126,8 +126,8 @@ class ResNet(nn.Module):
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
-        #out = self.avg_pool(out)
-        out = F.avg_pool2d(out, 8)
+        out = self.avg_pool(out)
+        #out = F.avg_pool2d(out, 8)
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out
