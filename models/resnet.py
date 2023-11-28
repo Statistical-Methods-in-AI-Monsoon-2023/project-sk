@@ -110,7 +110,7 @@ class ResNet(nn.Module):
         self.layer1 = self._make_layer(block, 16*filters_mag, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 32*filters_mag, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 64*filters_mag, num_blocks[2], stride=2)
-        self.linear = nn.Linear(64*block.expansion, num_classes)
+        self.linear = nn.Linear(64*filters_mag*block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
