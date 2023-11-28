@@ -26,15 +26,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--weight_path', type=str, help='Path to the weights file')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
 parser.add_argument('--dataset', type=str, default="cifar10", help='Dataset to be used')
+parser.add_argument('--dirn_file', type=str, required=True, help='The directions to be used for plotting the heatmap of the ratio of the eigenvalues')
 parser.add_argument('--range', type=int, default=20, help='In [-1, 1] the number of steps to take in one direction(same for both x and y). Higher the number, higher the resolution of the plot will be')
 
 
 def load_model_with_weights(path, device):
     model_init = torch.load(path, map_location=device)
     model_init = model_init['model']
-#    try:
- #       net = ResNet(BasicBlockNoShort, [9,9,9])
-  #      net.load_state_dict(model_init['state_dict'])
+    #try:
+    #net = ResNet(BasicBlockNoShort, [9,9,9])
+    #    net.load_state_dict(model_init['state_dict'])
    #     net.eval()
    #     return net
    # except:
@@ -167,28 +168,30 @@ if __name__ == "__main__":
     model = load_model_with_weights(args.weight_path, 'cpu')
     criterion = nn.CrossEntropyLoss()
 
-    dirn1 = give_model(args)
-    # dirn1.to(device)
-    for param, m_param in zip(dirn1.parameters(), model.parameters()):
-        if(len(m_param.shape) == 1):
-            param = m_param
-            continue
-        param.data = torch.randn_like(param.data)
-        param.data = param.data / torch.linalg.norm(param.data)
-        param.data *= torch.linalg.norm(m_param)
+    # dirn1 = give_model(args)
+    # # dirn1.to(device)
+    # for param, m_param in zip(dirn1.parameters(), model.parameters()):
+    #     if(len(m_param.shape) == 1):
+    #         param = torch.zeros_like(m_param)
+    #         continue
+    #     param.data = torch.randn_like(param.data)
+    #     param.data = param.data / torch.linalg.norm(param.data)
+    #     param.data *= torch.linalg.norm(m_param)
 
-    dirn2 = give_model(args)
-    # dirn2.to(device)
-    for param, m_param in zip(dirn2.parameters(), model.parameters()):
-        if(len(m_param.shape) == 1):
-            param = m_param
-            continue
-        param.data = torch.randn_like(param.data)
-        param.data = param.data / torch.linalg.norm(param.data)
-        param.data *= torch.linalg.norm(m_param)
-    directions = torch.load("dirn_visdataset:cifar10_model:resnet-short_range:20.pt")
+    # dirn2 = give_model(args)
+    # # dirn2.to(device)
+    # for param, m_param in zip(dirn2.parameters(), model.parameters()):
+    #     if(len(m_param.shape) == 1):
+    #         param = torch.zeros_like(m_param)
+    #         continue
+    #     param.data = torch.randn_like(param.data)
+    #     param.data = param.data / torch.linalg.norm(param.data)
+    #     param.data *= torch.linalg.norm(m_param)
+
+    directions = torch.load(args.dirn_file)
     dirn1, dirn2 = directions['dirn1'], directions['dirn2']
     print(dirn_dot(dirn1, dirn2))
+
     alpha = torch.linspace(-1, 1, args.range)
     beta = torch.linspace(-1, 1, args.range)
     mesh_x, mesh_y = torch.meshgrid(alpha, beta)
