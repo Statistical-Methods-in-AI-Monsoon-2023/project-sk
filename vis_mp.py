@@ -9,7 +9,7 @@ import torchvision.models as models
 import torch.nn.functional as F
 import copy
 import matplotlib.pyplot as plt
-from models import give_model, gen_unique_id
+from models import give_model, gen_unique_id, gen_unique_id_from_filename
 from models.resnet import ResNet, BasicBlockNoShort
 from visfuncs  import interpolate, move1D, move2D
 from data import load_dataset
@@ -21,7 +21,6 @@ import os
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--weight_path', type=str, help='Path to the weights file')
-parser.add_argument('--model', type=str, help='Name of the model',required=True)
 parser.add_argument('--range', type=int, default=20, help='In [-1, 1] the number of steps to take in one direction(same for both x and y). Higher the number, higher the resolution of the plot will be')
 parser.add_argument('--dataset', type=str, default="cifar10", help='Dataset to be used')
 
@@ -103,6 +102,7 @@ if __name__ == "__main__":
     nprocs = torch.cuda.device_count()
     workers = []
 
+    unique_filename = gen_unique_id_from_filename(args.weight_path)
     model = load_model_with_weights(args.weight_path, 'cpu')
     criterion = nn.CrossEntropyLoss()
 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         #print(param.data.reshape(-1) @ d1_param.data
     
     print(dirn_dot(dirn1, dirn2))    
-    torch.save({"dirn1": dirn1, "dirn2" : dirn2}, f"dirn_vis{gen_unique_id(args)}.pt")
+    torch.save({"dirn1": dirn1, "dirn2" : dirn2}, f"dirn_vis_{unique_filename}.pt")
     alpha = torch.linspace(-1, 1, args.range)
     beta = torch.linspace(-1, 1, args.range)
     mesh_x, mesh_y = torch.meshgrid(alpha, beta)
@@ -158,5 +158,4 @@ if __name__ == "__main__":
         workers[i].join()
 
     output = output.reshape((mesh_x.shape[0], mesh_y.shape[0], 2)).numpy()
-    unique_filename = gen_unique_id(args)
     np.save(f"results/plot_npy/{unique_filename}.npy", np.array([[output[..., 0]], [output[..., 1]], [mesh_x.numpy()], [mesh_y.numpy()]]))
