@@ -21,6 +21,7 @@ import os
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--weight_path', type=str, help='Path to the weights file')
+parser.add_argument('--model', type=str, help='Name of the model',required=True)
 parser.add_argument('--range', type=int, default=20, help='In [-1, 1] the number of steps to take in one direction(same for both x and y). Higher the number, higher the resolution of the plot will be')
 parser.add_argument('--dataset', type=str, default="cifar10", help='Dataset to be used')
 
