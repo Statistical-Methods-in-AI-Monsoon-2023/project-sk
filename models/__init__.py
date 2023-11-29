@@ -38,5 +38,5 @@ def gen_unique_id(args):
 
 def gen_unique_id_from_filename(filename):
     # take filename from path
-    model_unique_id = filename.split('/')[-1].split('.')[0]
+    model_unique_id = filename.rsplit('/', 1)[-1].rsplit('.', 1)[0]
     return model_unique_id
