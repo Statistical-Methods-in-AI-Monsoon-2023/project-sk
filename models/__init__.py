@@ -1,12 +1,11 @@
-from models.resnet import ResNet
-from models.vgg import VGG
-from models.cnn import CNN
-from models.vit import VIT
-from models.mlp import MLP
-
 from datetime import datetime
 
 def give_model(args):
+    from models.resnet import ResNet
+    from models.vgg import VGG
+    from models.cnn import CNN
+    from models.vit import VIT
+    from models.mlp import MLP
     dataset = args.dataset
     args = args.model.split("-", 1)
     name = args[0]
