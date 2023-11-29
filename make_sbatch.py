@@ -10,6 +10,7 @@ from models import gen_unique_id
 parser = argparse.ArgumentParser(description="Make SBATCH v1.0")
 parser.add_argument("--account", "-A", "-a", type=str, default="neuro")
 parser.add_argument("--merge", "-m", type=str, default=None)
+parser.add_argument("--run", "-r", action="store_true")
 args = parser.parse_args()
 
 hyperparameters = OrderedDict()
@@ -124,3 +125,8 @@ if args.merge:
     new_sbatch_file = sbatch_file.replace("###HERE###", "\n".join(cmds)).replace("###OUTPUT###",f"logs/{filename}.out")
     with open(filename, "w") as f:
         f.write(new_sbatch_file)
+
+if args.run:
+    from os import system
+    system(f"sbatch {filename}")
+    system(f"watch tail {logfile}")
