@@ -17,6 +17,7 @@ import numpy as np
 import argparse
 import torch.multiprocessing as mp
 import os
+from models.res import ResNet56_noshort 
 
 parser = argparse.ArgumentParser()
 
@@ -29,10 +30,10 @@ def load_model_with_weights(path, device):
     #print("adf")
     model_init = model_init['model']
     #try:
-    #net = ResNet(BasicBlockNoShort, [9,9,9])
-    #net.load_state_dict(model_init['state_dict'])
-    #net.eval()
-    #return net
+#    net = ResNet56_noshort()
+#    net.load_state_dict(model_init['state_dict'])
+#    net.eval()
+#    return net
     #except:
     #    pass
    # model_init.eval()
