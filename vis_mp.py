@@ -17,7 +17,6 @@ import numpy as np
 import argparse
 import torch.multiprocessing as mp
 import os
-from models.res import ResNet56_noshort 
 
 parser = argparse.ArgumentParser()
 
