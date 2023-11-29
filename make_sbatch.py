@@ -9,7 +9,7 @@ from models import gen_unique_id
 
 parser = argparse.ArgumentParser(description="Make SBATCH v1.0")
 parser.add_argument("--account", "-A", "-a", type=str, default="neuro")
-parser.add_argument("--single_file", "-s", action="store_true")
+parser.add_argument("--merge", "-m", type=str, default=None)
 args = parser.parse_args()
 
 hyperparameters = OrderedDict()
@@ -47,6 +47,10 @@ hyperparameters["optimizer"]= [
         "adam",
     ]
 hyperparameters["save_every"]= [1]
+
+hyperparameters["dataset"] = ["cifar10"]
+
+
 os.makedirs("sbatch", exist_ok=True)
 os.makedirs("logs", exist_ok=True)
 
@@ -58,35 +62,37 @@ print("Total number of jobs:", len(combo))
 
 combo = [
     # (model, batch_size, lr, epochs, weight_decay, optimizer, save_every),
-    # vgg
-    ("vgg-9", 128, 0.1, 300, 0, "sgd", 5),
-    ("vgg-9", 1024, 0.1, 300, 0, "sgd",5),
-    ("vgg-9", 128, 0.1, 300, 5e-4, "sgd", 5),
-    ("vgg-9", 1024, 0.1, 300, 5e-4, "sgd",5),
-    ("vgg-9", 128, 0.1, 300, 0, "adam", 5),
-    ("vgg-9", 1024, 0.1, 300, 0, "adam",5),
-    ("vgg-9", 128, 0.1, 300, 5e-4, "adam", 5),
-    ("vgg-9", 1024, 0.1, 300, 5e-4, "adam",5),
-    
-    ("vgg-19", 128, 0.1, 300, 5e-4, "sgd",-1),
+#     # vgg
+#     ("vgg-9", 128, 0.1, 300, 0, "sgd", 5,"cifar10"),
+#     ("vgg-9", 1024, 0.1, 300, 0, "sgd",5,"cifar10"),
+#     ("vgg-9", 128, 0.1, 300, 5e-4, "sgd", 5,"cifar10"),
+#     ("vgg-9", 1024, 0.1, 300, 5e-4, "sgd",5,"cifar10"),
+#     ("vgg-9", 128, 0.1, 300, 0, "adam", 5,"cifar10"),
+#     ("vgg-9", 1024, 0.1, 300, 0, "adam",5,"cifar10"),
+#     ("vgg-9", 128, 0.1, 300, 5e-4, "adam", 5,"cifar10"),
+#     ("vgg-9", 1024, 0.1, 300, 5e-4, "adam",5,"cifar10"),
+#
+#     ("vgg-19", 128, 0.1, 300, 5e-4, "sgd",-1,"cifar10"),
 
     # resnet
-    ("resnet-56-noshort-1", 128, 0.1, 300, 5e-4, "sgd", 1),
-    ("resnet-56-short-1", 128, 0.1, 300, 5e-4, "sgd", 1),
-    ("resnet-56-noshort-2", 128, 0.1, 300, 5e-4, "sgd", -1),
-    ("resnet-56-short-2", 128, 0.1, 300, 5e-4, "sgd", -1),
-    ("resnet-56-noshort-4", 128, 0.1, 300, 5e-4, "sgd", -1),
-    ("resnet-56-short-4", 128, 0.1, 300, 5e-4, "sgd", -1),
-    ("resnet-56-noshort-8", 128, 0.1, 300, 5e-4, "sgd", -1),
-    ("resnet-56-short-8", 128, 0.1, 300, 5e-4, "sgd", -1),
+    # ("resnet-56-noshort-1", 128, 0.1, 300, 5e-4, "sgd", 1,"cifar10"),
+    # ("resnet-56-short-1", 128, 0.1, 300, 5e-4, "sgd", 1,"cifar10"),
+    # ("resnet-56-noshort-2", 128, 0.1, 300, 5e-4, "sgd", -1,"cifar10"), done
+    # ("resnet-56-short-2", 128, 0.1, 300, 5e-4, "sgd", -1,"cifar10"),
+    # ("resnet-56-noshort-4", 128, 0.1, 300, 5e-4, "sgd", -1,"cifar10"),
+    # ("resnet-56-short-4", 128, 0.1, 300, 5e-4, "sgd", -1,"cifar10"),
+    ("resnet-56-noshort-8", 128, 0.1, 300, 5e-4, "sgd", -1,"cifar10"),
+    ("resnet-56-short-8", 128, 0.1, 300, 5e-4, "sgd", -1,"cifar10"),
 
-    ("resnet-20-short-1", 128, 0.1, 300, 5e-4, "sgd", 1),
-    ("resnet-20-noshort-1", 128, 0.1, 300, 5e-4, "sgd", 1),
+    ("resnet-20-short-1", 128, 0.1, 300, 5e-4, "sgd", 1,"cifar10"),
+    ("resnet-20-noshort-1", 128, 0.1, 300, 5e-4, "sgd", 1,"cifar10"),
 ]
 
-if args.single_file:
-    filename = "sbatch/sbatch-singlefile.sh"
+if args.merge:
+    filename = f"sbatch/sbatch-{args.merge}.sh"
 
+mergefile=""
+cmds=[]
 for hyperparam in combo:
     argsdict = dict(zip(hyperparameters.keys(), hyperparam))
     argstring = " ".join(
@@ -95,22 +101,26 @@ for hyperparam in combo:
     args_namespace = argparse.Namespace(**argsdict)
     unique_id = gen_unique_id(args_namespace)
     weights_path = f"weights/{unique_id}.pt"
-    if not args.single_file:
+    if not args.merge:
         filename = f"sbatch/{unique_id}.sh"
     logfile = f"logs/{unique_id}.out"
 
     model = argsdict["model"]
-    cmds = [
-        f"# jobname: {filename}",
+    new_cmds = [
+        f"# task: {filename}",
         f"mkdir -p logs", f"python3 mp.py {argstring}",
-        f"python3 vis_mp.py --weight_path {weights_path} --model {model} --range {50}"
+        # f"python3 vis_mp.py --weight_path {weights_path} --model {model} --range {50}"
     ]
 
-    new_sbatch_file = sbatch_file.replace("###HERE###", "\n".join(cmds))
-
-    if args.single_file:
-        with open(filename, "a") as f:
-            f.write(new_sbatch_file)
-    else:
+    if not args.merge:
+        new_sbatch_file = sbatch_file.replace("###HERE###", "\n".join(new_cmds)).replace("###OUTPUT###",logfile)
         with open(filename, "w") as f:
             f.write(new_sbatch_file)
+    else:
+        cmds.append(new_cmds)
+
+
+if args.merge:
+    new_sbatch_file = sbatch_file.replace("###HERE###", "\n".join(cmds)).replace("###OUTPUT###",f"logs/{filename}.out")
+    with open(filename, "w") as f:
+        f.write(new_sbatch_file)

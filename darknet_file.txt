@@ -1,0 +1,9 @@
+==========================================
+SLURM_JOB_ID = 1009395
+SLURM_NODELIST = gnode095
+SLURM_JOB_GPUS = 0
+==========================================
+  File "/home2/soham.korade/project-sk/resnet_train_cifar.py", line 33
+    model_unique_id = f"resnet-{
+                      ^
+SyntaxError: unterminated string literal (detected at line 33)
