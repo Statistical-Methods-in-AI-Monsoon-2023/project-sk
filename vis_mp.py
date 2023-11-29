@@ -21,7 +21,7 @@ import os
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--weight_path', type=str, help='Path to the weights file')
-parser.add_argument('--model', type=str, help='Name of the model',required=True)
+# parser.add_argument('--model', type=str, help='Name of the model',required=True)
 parser.add_argument('--range', type=int, default=20, help='In [-1, 1] the number of steps to take in one direction(same for both x and y). Higher the number, higher the resolution of the plot will be')
 parser.add_argument('--dataset', type=str, default="cifar10", help='Dataset to be used')
 
@@ -107,8 +107,10 @@ if __name__ == "__main__":
     model = load_model_with_weights(args.weight_path, 'cpu')
     criterion = nn.CrossEntropyLoss()
 
-    dirn1 = give_model(args)
-    dirn2 = give_model(args)
+    # dirn1 = give_model(args)
+    # dirn1 = give_model(args)
+    dirn1 = load_model_with_weights(args.weight_path, 'cpu')
+    dirn2 = load_model_with_weights(args.weight_path, 'cpu')
     for param, m_param in zip(dirn1.parameters(), model.parameters()):
         if(len(m_param.shape) == 1):
             param.data = torch.zeros_like(m_param)
