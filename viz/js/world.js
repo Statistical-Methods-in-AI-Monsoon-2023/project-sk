@@ -43,6 +43,7 @@ const world = {
 	Ammo: null,
 	physics: {},
 	show_terrain: false,
+	show_page: true,
 	origin: new THREE.Vector3(-0.5, 0, -0.5),
 	
 	page: null,

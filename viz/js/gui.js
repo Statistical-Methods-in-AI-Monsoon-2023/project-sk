@@ -48,6 +48,38 @@ function init_gui() {
 			world.physics.terrainMesh.visible = world.show_terrain
 		})
 
+	// show page option
+	gui.add(world, 'show_page')
+		.name('Show Page')
+		.onChange(() => {
+			// world.page.visible = world.show_page
+			world.page.visible = true
+			// fade in/out page
+			let time = 0
+			let animateID = requestAnimationFrame(animate)
+			function animate() {
+				time += 0.01
+				if (world.show_page) {
+					world.page_div.style.opacity = time
+				} else {
+					world.page_div.style.opacity = 1 - time
+				}
+				if (time > 1) {
+					time = 1
+					if(world.show_page) {
+						world.page_div.style.opacity = 1
+						world.page.visible = true
+					}else{
+						world.page_div.style.opacity = 0
+						world.page.visible = false
+					}
+					cancelAnimationFrame(animateID)
+				} else {
+					requestAnimationFrame(animate)
+				}
+			}
+		})
+
 	world.gui = gui
 }
 
