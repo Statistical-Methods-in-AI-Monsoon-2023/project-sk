@@ -3,13 +3,18 @@ import { world } from './world.js'
 import { reset_orbit_cam } from './controls.js'
 import { load_model_name } from './plot.js'
 import { add_ball, clear_balls } from './physics.js'
+import * as THREE from 'three'
+import TWEEN from 'tween'
 
 const gui_items = {
-	orbit_camera: () => {
-		world.camera = world.orbit_cam
-	},
-	reset_orbit_camera: () => {
+	// orbit_camera: () => {
+	// 	world.camera = world.orbit_cam
+	// },
+	focus_plot: () => {
 		reset_orbit_cam()
+	},
+	focus_page: () => {
+		move_cam_to_page()
 	},
 	add_ball: () => {
 		add_ball()
@@ -17,6 +22,29 @@ const gui_items = {
 	clear_balls: () => {
 		clear_balls()
 	},
+}
+
+function move_cam_to_page() {
+	const { orbit_cam, orbit } = world
+	const transitions = [
+		[orbit_cam.position, new THREE.Vector3(-3, 1, 4.5)],
+		[orbit_cam.quaternion, new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0, 'XYZ'))],
+		[orbit.target, world.origin],
+	]
+
+	// look at page
+	orbit_cam.lookAt(world.page.position)
+
+	// smooth transition
+	for (const [start, end] of transitions) {
+		new TWEEN.Tween(start)
+			.to(end, 1000)
+			.easing(TWEEN.Easing.Quadratic.InOut)
+			.onUpdate(() => {
+				orbit_cam.updateProjectionMatrix()
+				orbit.update()
+			}).start()
+	}
 }
 
 function get_pretty_name(name) {
@@ -66,10 +94,10 @@ function init_gui() {
 				}
 				if (time > 1) {
 					time = 1
-					if(world.show_page) {
+					if (world.show_page) {
 						world.page_div.style.opacity = 1
 						world.page.visible = true
-					}else{
+					} else {
 						world.page_div.style.opacity = 0
 						world.page.visible = false
 					}

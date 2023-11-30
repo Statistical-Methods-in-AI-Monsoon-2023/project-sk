@@ -57,7 +57,7 @@ function process_data(data, log_plot = false) {
 		}
 	}
 	normalize(data)
-	perturb_noise(data)
+	add_noise(data)
 	blend_mesh(mesh.geometry, data)
 	// const cp = make_cp()
 	// mesh.add(cp)
@@ -65,25 +65,14 @@ function process_data(data, log_plot = false) {
 	return { mesh, width, height }
 }
 
-function perturb_noise(data) {
+function add_noise(data) {
 	const width = data.length, height = data[0].length
-	const offset = (x, y) => x * width + y
-	const noise = new Array(width * height)
-	// add perlin noise
-	for (let x = 0; x < width; x++) {
-		for (let y = 0; y < height; y++) {
-
-			noise[offset(x, y)] = Math.random() * 0.05
-		}
-	}
 	// add noise to data
 	for (let x = 0; x < width; x++) {
 		for (let y = 0; y < height; y++) {
-			data[x][y].z += noise[offset(x, y)]
+			data[x][y].z += (Math.random() - 0.5) * 0.05
 		}
 	}
-
-
 }
 
 function normalize(data) {

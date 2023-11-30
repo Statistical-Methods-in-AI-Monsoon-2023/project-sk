@@ -137,7 +137,7 @@ function init_cameras() {
 function reset_orbit_cam() {
 	const { orbit_cam, orbit } = world
 	const transitions = [
-		[orbit_cam.position, new THREE.Vector3(0, 1.2, 1.2)],
+		[orbit_cam.position, new THREE.Vector3(0.8, 1.2, 1)],
 		[orbit_cam.quaternion, new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0, 'XYZ'))],
 		[orbit.target, world.origin],
 	]

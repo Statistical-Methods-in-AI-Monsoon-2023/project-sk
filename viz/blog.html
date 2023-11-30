@@ -288,7 +288,7 @@
         <!-- Image 1 -->
         <div class="col-md-2">
           <figure class="text-center">
-            <img src="../finalplots/vgg wd.jpeg" alt="VGG Weight Decay Effect" class="img-fluid">
+            <img src="../results/plots/weight-decay-vgg-11.png" alt="VGG Weight Decay Effect" class="img-fluid">
             <figcaption>VGG Weight Decay Effect</figcaption>
           </figure>
         </div>
@@ -296,7 +296,7 @@
         <!-- Image 1 -->
         <div class="col-md-2">
           <figure class="text-center">
-            <img src="../finalplots/vgg-11-wd-demonstration.png" alt="Weight Decay Effect" class="img-fluid">
+            <img src="../results/plots/weight-decay-compare-vgg-11.png" alt="Weight Decay Effect" class="img-fluid">
             <figcaption>Weight Decay Effect</figcaption>
           </figure>
         </div>
@@ -374,7 +374,7 @@
         <!-- Image 8 -->
         <div class="col-md-2">
           <figure class="text-center">
-            <img src="../results/plots/sharp-flat-plot-:resnet-56-short-4.png"
+            <img src="../results/plots/sharp-flat-plot-resnet-56-short-4.png"
               alt="ResNet-56, Shortcuts, Batch Size: 128" class="img-fluid">
             <figcaption>ResNet-56, Shortcuts, Batch Size: 128</figcaption>
           </figure>
@@ -383,7 +383,7 @@
         <!-- Image 9 -->
         <div class="col-md-2">
           <figure class="text-center">
-            <img src="../results/plots/sharp-flat-plot-:resnet-56-short-2.png"
+            <img src="../results/plots/sharp-flat-plot-resnet-56-short-2.png"
               alt="ResNet-56, Shortcuts, Batch Size: 128" class="img-fluid">
             <figcaption>ResNet-56, Shortcuts, Batch Size: 128</figcaption>
           </figure>
@@ -392,20 +392,16 @@
         <!-- Image 10 -->
         <div class="col-md-2">
           <figure class="text-center">
-            <img src="../results/plots/sharp-flat-plot-:resnet-56-short-1.png"
+            <img src="../results/plots/sharp-flat-plot-resnet-56-short-1.png"
               alt="ResNet-56, Shortcuts, Batch Size: 128" class="img-fluid">
             <figcaption>ResNet-56, Shortcuts, Batch Size: 128</figcaption>
           </figure>
         </div>
 
-      </div>
-
-      <div class="row">
-
         <!-- Image 11 -->
         <div class="col-md-2">
           <figure class="text-center">
-            <img src="../results/plots/sharp-flat-plot-:resnet-20-short-1.png"
+            <img src="../results/plots/sharp-flat-plot-resnet-20-short-1.png"
               alt="ResNet-20, Shortcuts, Batch Size: 128" class="img-fluid">
             <figcaption>ResNet-20, Shortcuts, Batch Size: 128</figcaption>
           </figure>
@@ -657,14 +653,25 @@
       integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
       crossorigin="anonymous"></script>
     <script type="text/javascript">
-      // make each paragraph a different color
-      const elements = []
-      for (let el of document.getElementsByTagName("section")) {
-        elements.push(el)
+      let time = 50
+      function animate() {
+        // requestAnimationFrame(animate)
+        // make each paragraph a different color
+        const elements = []
+        for (let el of document.getElementsByTagName("section")) {
+          elements.push(el)
+        }
+        for (let i = 0; i < elements.length; i++) elements[i].style.color = `hsl(${i * 30 + time}, 50%, 50%)`
+
+
+        // add background to all images
+        const images = document.getElementsByTagName("img")
+        for (let i = 0; i < images.length; i++) {
+          images[i].style.backgroundColor = `hsl(${i * 30 + time}, 50%, 50%, 0.1)`
+        }
+        time += 1
       }
-      for (let i = 0; i < elements.length; i++) elements[i].style.color = `hsl(${i * 30}, 50%, 50%)`;
-      // set the background color of the body
-      document.body.style.backgroundColor = "transparent !important";  
+      animate()
     </script>
 </body>
 

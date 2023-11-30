@@ -86,8 +86,8 @@ function add_page() {
 	div.appendChild(iframe)
 
 	const page = new CSS3DObject(div)
-	page.scale.set(0.01, 0.01, 0.01)
-	page.position.set(-4, 0, 0)
+	page.scale.set(0.005, 0.005, 0.005)
+	page.position.set(-2, 1, 0)
 	scene.add(page)
 
 	world.page = page
@@ -97,9 +97,9 @@ function add_page() {
 function build_scene() {
 	// add_ground()
 	add_skybox()
-	add_plot()
-	load_model_name()
-	add_page()
+	// add_plot()
+	// load_model_name()
+	// add_page()
 }
 
 export { build_scene, add_lights }

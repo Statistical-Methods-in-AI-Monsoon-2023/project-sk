@@ -13,27 +13,38 @@ parser.add_argument('--json', action='store_true')
 parser.add_argument('--plot',
                     type=str,
                     default='surface',
-                    choices=['surface', 'contour', 'sharp_flat'])
+                    choices=['surface', 'contour', 'sharp_flat', 'weight_decay'])
 parser.add_argument('--transparent', action='store_true')
+parser.add_argument('--log', action='store_true')
+parser.add_argument('--comp', action='store_true')
 args = parser.parse_args()
+
+if args.transparent:
+    plt.style.use('dark_background')
 
 model_unique_id = gen_unique_id_from_filename(args.file)
 
-array = np.load(args.file, allow_pickle=True)
-loss, accs, x, y = array
-print(array.shape)
-print(loss.shape, accs.shape, x.shape, y.shape)
-loss = loss[0]
-x = x[0]
-y = y[0]
-accs = accs[0]
+if args.plot != 'weight_decay':
+    array = np.load(args.file, allow_pickle=True)
+    loss, accs, x, y = array
+    print(array.shape)
+    print(loss.shape, accs.shape, x.shape, y.shape)
+    loss = loss[0]
+    x = x[0]
+    y = y[0]
+    accs = accs[0]
 
-# replace nan with 0
-loss = np.nan_to_num(loss, posinf=0, neginf=0)
-accs = np.nan_to_num(accs, posinf=0, neginf=0)
+    # replace nan with 0
+    loss = np.nan_to_num(loss, posinf=0, neginf=0)
+    accs = np.nan_to_num(accs, posinf=0, neginf=0)
+
+    if args.log:
+        loss = np.log(loss)
+        accs = np.log(accs)
 
 
 def contour_plot():
+    global loss
     loss = loss / 10000
     contour_plot = plt.contour(x, y, loss, levels=20, cmap='viridis')
     plt.clabel(contour_plot, inline=True, fontsize=8)
@@ -70,8 +81,9 @@ def sharp_flat_plot():
     filename = os.path.basename(args.file).replace('.npy', '')
 
     # keep "model:(...)_" only
-    filename = filename.split('model:')[1]
-    filename = filename.split('_')[0]
+    if "model:" in filename:
+        filename = filename.split('model:')[1]
+        filename = filename.split('_')[0]
 
     plt.suptitle(filename)
 
@@ -84,10 +96,6 @@ def sharp_flat_plot():
 
 
 def surface_plot():
-    # # log scale
-    # loss = np.log(loss)
-    # accs = np.log(accs)
-
     # # print(loss.min(), loss.max())
 
     def to_xyz_array(arr):
@@ -129,11 +137,44 @@ def surface_plot():
         plt.savefig(f'results/plots/acc-{model_unique_id}.png',
                     transparent=args.transparent)
 
+def weight_decay_plot():
+    array = np.load(args.file)
+    loss, accs, x, wd1, wd2 = array['loss'], array['acc'], array['x'], array['wd1'], array['wd2']
+    print(loss, x)
+    loss /= 10000
+    loss[loss > np.min(loss)*10] = np.min(loss) * 10
+    if args.comp:
+        plt.plot(wd1, label = "Batch Size - 1024")
+        plt.plot(wd2, label = "Batch SIze - 128")
+    else:
+        fig, ax1 = plt.subplots()
+        x = np.arange(len(loss)) / len(loss) * 2.5 - 1.25
+        ax1.plot(x, loss, 'b-')
+        ax1.set_xlabel('interpolation (alpha)')
+        ax1.set_ylabel('loss', color='b')
+        ax1.tick_params('y', colors='b')
+
+        ax2 = ax1.twinx()
+        ax2.plot(x, accs, 'r-')
+        ax2.set_ylabel('acc', color='r')
+        ax2.tick_params('y', colors='r')
+
+    plt.title("VGG-11, Weight Decay 5e-4")
+    if args.show:
+        plt.show()
+    else:
+        if args.comp:
+            plt.savefig(f'results/plots/weight-decay-compare-{model_unique_id}.png',
+                    transparent=args.transparent)
+        else:
+            plt.savefig(f'results/plots/weight-decay-{model_unique_id}.png',
+                        transparent=args.transparent)
 
 plots = {
     'contour': contour_plot,
     'sharp_flat': sharp_flat_plot,
-    'surface': surface_plot
+    'surface': surface_plot,
+    'weight_decay': weight_decay_plot,
 }
 
 plots[args.plot]()
