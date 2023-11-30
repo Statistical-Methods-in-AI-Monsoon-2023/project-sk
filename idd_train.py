@@ -6,78 +6,40 @@ import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from models.resnetIDD import ResNet56IDD
+from models import give_model, gen_unique_id
 from data import load_idd
 import os
+import numpy as np
 from torch.distributed import init_process_group, destroy_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
+from models.resnetIDD import ResNet56IDD
 import torch.multiprocessing as mp
 import time
 import argparse
+import math
 
-parser = argparse.ArgumentParser(description='Train a model on IDD')
+parser = argparse.ArgumentParser(description='Train a model on CIFAR10')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train for')
 parser.add_argument('--batch_size', type=int, default=128, help='Batch size')
+parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate')
+parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight decay')
+parser.add_argument('--optimizer', type=str, default='adam', help='Optimizer')
 parser.add_argument('--save_every', type=int, default=-1, help='Save every save_every iterations')
 parser.add_argument('--model', type=str, help='Name of the model',required=True)
-parser.add_argument('--data', type=str, help='Path to the IDD images', default="../train_idd/")
-
 
 def setup(rank, args):
     # Ininitalizes the process_group and makes this process a part of that group. 
     # MASTER_ADDR and MASTER_PORT are required for the processes to communicate to the master node
 
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '3003'
+    os.environ['MASTER_PORT'] = '3001'
     init_process_group('nccl', rank=rank, world_size=args.world_size)
 
-def train(rank, args):
-
-    setup(rank, args)
-
-    train_loader, test_loader = load_idd(args.data, int(args.batch_size), 2, distributed=True)
-
-    # Create the ResNet model and optimizer
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+def calc_weight_norm(model):
+    w2 = sum([torch.sum(param ** 2).item() for param in model.parameters()])
+    return math.sqrt(w2)
     
-    model = ResNet56IDD(args.model)
-    model_unique_id = f"{model.get_unique_id()}-{args.batch_size}-{args.epochs}epochs"
-    # Create a DDP instance
-    model.to(rank)
-    model = DDP(model, device_ids=[rank])
-    optimizer = optim.Adam(model.parameters(), lr=0.1)
-    # Training loop
-    num_epochs = args.epochs
-    count = 0
-    t1 = time.time()
-
-    if(args.save_every != -1):
-        os.makedirs(f'weights/{model_unique_id}', exist_ok=True)
-
-    for epoch in range(num_epochs):
-        model.train()
-        count = 0 
-        for batch_idx, (data, target) in enumerate(train_loader):
-            count += 1
-            optimizer.zero_grad()
-            data = data.to(rank)
-            target = target.to(rank)
-            output = model(data)
-            loss = F.cross_entropy(output, target)
-            loss.backward()
-            optimizer.step()
-        
-            if batch_idx % 100 == 0:
-                print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
-        
-        if(rank == 0):
-            if(epoch % args.save_every == 0 and args.save_every != -1):
-                torch.save(model.module, f"weights/{model_unique_id}/{epoch}.pt")
-    if(rank == 0):
-        torch.save(model.module, f"weights/{model_unique_id}.pt")
-    
-    # Test the model
-    model.eval()
+def test_acc(model, test_loader, rank):
     test_loss = 0
     correct = 0
     with torch.no_grad():
@@ -88,11 +50,103 @@ def train(rank, args):
             test_loss += F.cross_entropy(output, target, reduction='sum').item()
             pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum()
-
+    
     torch.distributed.all_reduce(tensor=correct, op=torch.distributed.ReduceOp.SUM)
     test_loss /= len(test_loader.dataset)
     accuracy = 100.0 * correct / len(test_loader.dataset)
-    print(f'Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy}%')
+    if(rank == 0):
+        print(f'Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy}%')
+    return accuracy, test_loss
+
+def test(net):
+    total_params = 0
+
+    for x in filter(lambda p: p.requires_grad, net.parameters()):
+        total_params += torch.prod(torch.tensor(x.data.shape))
+    print("Total number of params", total_params)
+    print("Total layers", len(list(filter(lambda p: p.requires_grad and len(p.data.size())>1, net.parameters()))))
+
+def train(rank, args):
+
+    setup(rank, args)
+
+    train_loader, test_loader = load_idd(args.data, int(args.batch_size), 2, distributed=True)
+
+    # Create the ResNet model and optimizer
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    model = ResNet56IDD(args.model).to(rank)
+    model_unique_id = gen_unique_id(args)
+    
+    # Create a DDP instance
+    model.to(rank)
+    model = DDP(model, device_ids=[rank])
+    if args.optimizer == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer == 'sgd':
+        optimizer = optim.SGD(model.parameters(), momentum = 0.9, lr=args.lr, weight_decay=args.weight_decay)
+
+    # LR Scheduler as mentioned in the paper
+    # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[150, 225, 275], gamma=0.1)
+
+    # Training loop
+    num_epochs = args.epochs
+    count = 0
+    t1 = time.time()
+    if(rank == 0):
+        losses = []
+        weight_norm = []
+
+    if(args.save_every != -1):
+        os.makedirs(f'weights/{model_unique_id}', exist_ok=True)
+
+    for epoch in range(num_epochs):
+        model.train()
+        for batch_idx, (data, target) in enumerate(train_loader):
+            count += 1
+            if(data is None):
+                continue
+            optimizer.zero_grad()
+            data = data.to(rank)
+            target = target.to(rank)
+            output = model(data)
+            output = F.sigmoid(output)
+            loss = F.binary_cross_entropy(output, target)
+            loss.backward()
+            optimizer.step()
+            
+            if batch_idx % 100 == 0:
+                print(f'GPU {rank} : Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
+                #if(rank == 0):
+        # _, _ = test_acc(model, test_loader, rank)
+
+        # scheduler.step()
+        
+        if(rank == 0):
+            weight_norm.append(calc_weight_norm(model))
+            if(epoch % args.save_every == 0 and args.save_every != -1):
+                torch.save(model.module, f"weights/{model_unique_id}/{epoch}.pt")
+
+    if(rank == 0):
+        torch.save({"model" : model.module, "losses" : losses, "weight_norm" : weight_norm}, f"weights/{model_unique_id}.pt")
+    
+    # Test the model
+    # model.eval()
+    # test_loss = 0
+    # correct = 0
+    # with torch.no_grad():
+    #     for data, target in test_loader:
+    #         data = data.to(rank)
+    #         target = target.to(rank)
+    #         output = model(data)
+    #         test_loss += F.cross_entropy(output, target, reduction='sum').item()
+    #         pred = output.argmax(dim=1, keepdim=True)
+    #         correct += pred.eq(target.view_as(pred)).sum()
+
+    # torch.distributed.all_reduce(tensor=correct, op=torch.distributed.ReduceOp.SUM)
+    # test_loss /= len(test_loader.dataset)
+    # accuracy = 100.0 * correct / len(test_loader.dataset)
+    # print(f'Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy}%')
     destroy_process_group()
 
 if __name__ == '__main__':
@@ -101,6 +155,4 @@ if __name__ == '__main__':
     args.world_size = world_size
     print(world_size)
     print(args)
-    
-    # Creates (world_size) number of processes
     mp.spawn(train, args=[args], nprocs=world_size)
