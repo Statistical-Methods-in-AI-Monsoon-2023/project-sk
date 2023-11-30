@@ -73,15 +73,16 @@ function add_page() {
 	const { scene } = world
 
 	const div = document.createElement('div')
-	div.style.width = '480px'
-	div.style.height = '360px'
-	// div.style.backgroundColor = '#000'
+	div.style.width = '100vw'
+	div.style.height = '50vh'
+	div.style.backgroundColor = 'transparent'
 
 	const iframe = document.createElement('iframe')
-	iframe.style.width = '480px'
-	iframe.style.height = '360px'
+	iframe.style.width = '100vh'
+	iframe.style.height = '50vw'
 	iframe.style.border = '0px'
 	iframe.src = "./blog.html"
+	iframe.allowTransparency = true
 	div.appendChild(iframe)
 
 	const page = new CSS3DObject(div)
