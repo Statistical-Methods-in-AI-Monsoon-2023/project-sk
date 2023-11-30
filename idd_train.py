@@ -25,7 +25,6 @@ parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate')
 parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight decay')
 parser.add_argument('--optimizer', type=str, default='adam', help='Optimizer')
 parser.add_argument('--save_every', type=int, default=-1, help='Save every save_every iterations')
-parser.add_argument('--model', type=str, help='Name of the model',required=True)
 
 def setup(rank, args):
     # Ininitalizes the process_group and makes this process a part of that group. 
