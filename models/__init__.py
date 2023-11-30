@@ -1,12 +1,11 @@
-from models.resnet import ResNet
-from models.vgg import VGG
-from models.cnn import CNN
-from models.vit import VIT
-from models.mlp import MLP
-
 from datetime import datetime
 
 def give_model(args):
+    from models.resnet import ResNet
+    from models.vgg import VGG
+    from models.cnn import CNN
+    from models.vit import VIT
+    from models.mlp import MLP
     dataset = args.dataset
     args = args.model.split("-", 1)
     name = args[0]
@@ -36,3 +35,8 @@ def gen_unique_id(args):
     unique_id = unique_id[:-1]
     # unique_id+=f"date:{datetime.now().strftime('%d-%m-%Y-%H.%M.%S')}"
     return unique_id
+
+def gen_unique_id_from_filename(filename):
+    # take filename from path
+    model_unique_id = filename.rsplit('/', 1)[-1].rsplit('.', 1)[0]
+    return model_unique_id

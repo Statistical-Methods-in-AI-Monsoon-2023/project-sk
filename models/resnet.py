@@ -16,7 +16,7 @@ class LambdaLayer(nn.Module):
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1, option='A'):
+    def __init__(self, in_planes, planes, stride=1, option='B'):
         super(BasicBlock, self).__init__()
         self.planes = planes
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -71,7 +71,7 @@ class BasicBlockNoShort(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, margs="noshort", dataset="cifar10", num_blocks=[9,9,9], num_classes=10):
+    def __init__(self, margs="noshort", dataset="cifar10"):
         super(ResNet, self).__init__()
         # margs of the form size-short/noshort-filters_mag
         self.in_planes = 16
@@ -82,7 +82,10 @@ class ResNet(nn.Module):
         elif(dataset == "mnist"):
             self.channel_num = 1
             self.final_avg_pool = 7
+        else:
+            raise ValueError("dataset must be one of 'cifar10' or 'mnist'")
 
+        num_classes=10
         args = margs.split('-')
 
         resnet_size = int(args[0])
@@ -95,8 +98,10 @@ class ResNet(nn.Module):
             num_blocks = [9, 9, 9]
         elif(resnet_size == 110):
             num_blocks = [18, 18, 18]
+        else:
+            raise ValueError("resnet_size must be one of 18, 56, 110")
 
-        self.avg_pool = nn.AvgPool2d(self.final_avg_pool)
+        #self.avg_pool = nn.AvgPool2d(self.final_avg_pool)
         if self.block_type == "short":
             print("short")
             block = BasicBlock
@@ -126,8 +131,8 @@ class ResNet(nn.Module):
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
-        out = self.avg_pool(out)
-        #out = F.avg_pool2d(out, 8)
+        #out = self.avg_pool(out)
+        out = F.avg_pool2d(out, 8)
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out

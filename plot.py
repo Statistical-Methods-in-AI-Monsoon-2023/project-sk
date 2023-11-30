@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from models import gen_unique_id_from_filename
 import argparse
 
 parser = argparse.ArgumentParser(description='Plot loss and accuracy')
@@ -43,8 +44,7 @@ def to_xyz_array(arr):
         array.append(row)
     return array
 
-# take filename from path
-model_unique_id = args.file.split('/')[-1].split('.')[0]
+model_unique_id = gen_unique_id_from_filename(args.file)
 
 # mkdir results/plots/
 import os
