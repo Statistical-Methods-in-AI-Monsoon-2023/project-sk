@@ -6,16 +6,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Visualizing the Loss Landscape of Neural Nets</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300&display=swap');
+
+    * {
+      --bs-body-color: white;
+    }
+
     body {
       font-family: 'Arial', sans-serif;
       line-height: 1.6;
       margin: 20px;
-      color: green;
-      background-color: rgba(0, 0, 0, 0.2);
+      background-color: rgba(0, 0, 0, 0.1) !important;
+      backdrop-filter: blur(5px);
     }
 
     section {
       margin-bottom: 40px;
+    }
+
+    ::-webkit-scrollbar {
+      display: none;
     }
 
     img {
@@ -25,6 +35,10 @@
       border: 1px solid #ddd;
       border-radius: 4px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-family: 'Montserrat', sans-serif;
     }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
@@ -46,474 +60,612 @@
 
 <body>
   <div class="container">
-    <h1>Visualizing the Loss Landscape of Neural Nets</h1>
+    <h1 class="display-1">Visualizing the Loss Landscape of Neural Nets</h1>
 
-    <p>In our exploration of neural network loss landscapes, we investigated how:</p>
-    <ol>
-      <li>The sharpness/flatness of minimizers influences generalization.</li>
-      <li>The convexity of loss landscapes correlates with trainability.</li>
-      <li>Architectural choices impact the landscape and, consequently, generalization:<ol>
-          <li>Importance of skip connections.</li>
-          <li>Influence of the number of filters.</li>
-          <li>Impact of the number of layers.</li>
+    <div class="row">
+      <div class="col-md-6">
+        <p>Link: <a href="https://arxiv.org/abs/1712.09913">https://arxiv.org/abs/1712.09913</a></p>
+        <img src="surface.png" class="img-fluid" alt="Loss Surface" width="250px">
+      </div>
+
+      <section>
+        <p>In our exploration of neural network loss landscapes, we investigated how:</p>
+        <ol>
+          <li>The sharpness/flatness of minimizers influences generalization.</li>
+          <li>The convexity of loss landscapes correlates with trainability.</li>
+          <li>Architectural choices impact the landscape and, consequently, generalization:<ol>
+              <li>Importance of skip connections.</li>
+              <li>Influence of the number of filters.</li>
+              <li>Impact of the number of layers.</li>
+            </ol>
+          </li>
         </ol>
-      </li>
-    </ol>
-    <h3 id="key-contributions-">Key Contributions:</h3>
-    <ol>
-      <li>Identified that simple visualizations inadequately represent the sharpness/flatness of minimizers.</li>
-      <li>Introduced &quot;filter normalization&quot; to facilitate meaningful comparisons between different minimizers.
-      </li>
-      <li>Uncovered the relationship between chaotic loss landscapes, reduced generalization error, and diminished
-        trainability, especially in deep networks. Proposed solution:<ul>
-          <li>Leveraging skip connections to promote flat minimizers and prevent chaotic behavior.</li>
-        </ul>
-      </li>
-      <li>Quantitatively validated that 2D loss landscapes capture the majority of the geometry by examining the most
-        negative eigenvalues of the Hessian around local minima, visualized through a heatmap.</li>
-      <li>Quantitatively demonstrated that optimization trajectories inhabit a low-dimensional space.</li>
-    </ol>
-    <h2 id="visualizing-neural-network-loss-functions">Visualizing Neural Network Loss Functions</h2>
-    <p>Neural networks are trained on feature vectors and labels by minimizing a loss function, L(θ), where θ represents
-      the parameters of the network. The loss function evaluates how well the network predicts labels for data samples.
-    </p>
-    <p>$$ L(\theta) = \frac{1}{m}\sum^m_{i=1}l(x_i,y_i;\theta) $$</p>
-    <h3 id="curse-of-dimensionality">Curse of Dimensionality</h3>
-    <p>Neural nets have thousands of parameters, leading to high-dimensional loss functions. Visualizing them is
-      challenging, often restricted to 1D or 2D plots. Various methods aim to bridge this dimensionality gap.</p>
-    <h3 id="1-dimensional-linear-interpolation">1-Dimensional Linear Interpolation</h3>
-    <p>Method: Use two parameter sets, θ and θ₀, and interpolate along the line connecting them.
-      Parameterization: A scalar parameter α defines the weighted average θ(α) = (1 − α)θ + αθ₀.
-      Visualization: Plot the function f(α) = L(θ(α)).
-      Applications: Commonly used to study sharpness and flatness of minima, and their dependence on factors like batch
-      size.
-      Weaknesses of 1D Interpolation
-      Limited for Non-Convexities: Difficulty in visualizing non-convexities, hindering the understanding of local
-      minima.
-      Neglects Batch Normalization and Symmetries: Fails to consider batch normalization or invariance symmetries in the
-      network, potentially leading to misleading sharpness comparisons.</p>
-    <h1 id="exploring-loss-surfaces-with-contour-plots-and-random-directions">Exploring Loss Surfaces with Contour Plots
-      and Random Directions</h1>
-    <p>To employ this approach, a center point θ∗ is chosen in the graph, along with two direction vectors, δ and η. The
-      method involves plotting a function of the form:</p>
+      </section>
+      <section>
+        <h3 id="key-contributions-">Key Contributions:</h3>
+        <ol>
+          <li>Identified that simple visualizations inadequately represent the sharpness/flatness of minimizers.</li>
+          <li>Introduced &quot;filter normalization&quot; to facilitate meaningful comparisons between different
+            minimizers.
+          </li>
+          <li>Uncovered the relationship between chaotic loss landscapes, reduced generalization error, and diminished
+            trainability, especially in deep networks. Proposed solution:<ul>
+              <li>Leveraging skip connections to promote flat minimizers and prevent chaotic behavior.</li>
+            </ul>
+          </li>
+          <li>Quantitatively validated that 2D loss landscapes capture the majority of the geometry by examining the
+            most
+            negative eigenvalues of the Hessian around local minima, visualized through a heatmap.</li>
+          <li>Quantitatively demonstrated that optimization trajectories inhabit a low-dimensional space.</li>
+        </ol>
+      </section>
+      <section>
+        <h2 id="visualizing-neural-network-loss-functions">Visualizing Neural Network Loss Functions</h2>
+        <p>Neural networks are trained on feature vectors and labels by minimizing a loss function, L(θ), where θ
+          represents
+          the parameters of the network. The loss function evaluates how well the network predicts labels for data
+          samples.
+        </p>
+        <p>$$ L(\theta) = \frac{1}{m}\sum^m_{i=1}l(x_i,y_i;\theta) $$</p>
+      </section>
+      <section>
+        <h3 id="curse-of-dimensionality">Curse of Dimensionality</h3>
+        <p>Neural nets have thousands of parameters, leading to high-dimensional loss functions. Visualizing them is
+          challenging, often restricted to 1D or 2D plots. Various methods aim to bridge this dimensionality gap.</p>
+      </section>
+      <section>
+        <h3 id="1-dimensional-linear-interpolation">1-Dimensional Linear Interpolation</h3>
+        <p>Method: Use two parameter sets, θ and θ₀, and interpolate along the line connecting them.
+          Parameterization: A scalar parameter α defines the weighted average θ(α) = (1 − α)θ + αθ₀.
+          Visualization: Plot the function f(α) = L(θ(α)).
+          Applications: Commonly used to study sharpness and flatness of minima, and their dependence on factors like
+          batch
+          size.
+          Weaknesses of 1D Interpolation
+          Limited for Non-Convexities: Difficulty in visualizing non-convexities, hindering the understanding of local
+          minima.
+          Neglects Batch Normalization and Symmetries: Fails to consider batch normalization or invariance symmetries in
+          the
+          network, potentially leading to misleading sharpness comparisons.</p>
+      </section>
+      <section>
+        <h1 id="exploring-loss-surfaces-with-contour-plots-and-random-directions">Exploring Loss Surfaces with Contour
+          Plots
+          and Random Directions</h1>
+        <p>To employ this approach, a center point θ∗ is chosen in the graph, along with two direction vectors, δ and η.
+          The
+          method involves plotting a function of the form:</p>
 
-      <div id="carouselExampleControls" class="carousel slide" data-bs-ride="carousel" style="max-width: 600px; margin: auto;">
-        <div class="carousel-inner">
-          <div class="carousel-item active">
-            <img src="../results/plots/contour-plot-vgg-19-bs-128-lr-0.1-wd-5e-4.png" class="d-block w-100" alt="Image 1">
+        <div id="carouselExampleControls" class="carousel slide" data-bs-ride="carousel"
+          style="max-width: 600px; margin: auto;">
+          <div class="carousel-inner">
+            <div class="carousel-item active">
+              <img src="../results/plots/contour-plot-vgg-19-bs-128-lr-0.1-wd-5e-4.png" class="d-block w-100"
+                alt="Image 1">
+              <div class="carousel-caption d-none d-md-block">
+                <h5>label</h5>
+              </div>
+            </div>
+            <div class="carousel-item">
+              <img src="../results/plots/contour-plot-vgg-11-bs-1024-wd-0-sgd.png" class="d-block w-100" alt="Image 2">
+            </div>
+            <div class="carousel-item">
+              <img src="../results/plots/contour-plot-vgg-11-bs-1024-adam-5e-4.png" class="d-block w-100" alt="Image 3">
+            </div>
+            <div class="carousel-item">
+              <img src="../results/plots/contour-plot-vgg-11-bs-128-wd-5e-4-sgd.png" class="d-block w-100"
+                alt="Image 4">
+            </div>
+            <div class="carousel-item">
+              <img src="../results/plots/contour-plot-vgg-11-bs-128-adam-5e-4.png" class="d-block w-100" alt="Image 5">
+            </div>
+            <div class="carousel-item">
+              <img src="../results/plots/contour-plot-resnet56-ns-2-bs-128optsgd.png" class="d-block w-100"
+                alt="Image 6">
+            </div>
+            <div class="carousel-item">
+              <img src="../results/plots/contour-plot-resnet-56-ns-4-bs-128optsgd.png" class="d-block w-100"
+                alt="Image 7">
+            </div>
           </div>
-          <div class="carousel-item">
-            <img src="../results/plots/contour-plot-vgg-11-bs-1024-wd-0-sgd.png" class="d-block w-100" alt="Image 2">
-          </div>
-          <div class="carousel-item">
-            <img src="../results/plots/contour-plot-vgg-11-bs-1024-adam-5e-4.png" class="d-block w-100" alt="Image 3">
-          </div>
-          <div class="carousel-item">
-            <img src="../results/plots/contour-plot-vgg-11-bs-128-wd-5e-4-sgd.png" class="d-block w-100" alt="Image 4">
-          </div>
-          <div class="carousel-item">
-            <img src="../results/plots/contour-plot-vgg-11-bs-128-adam-5e-4.png" class="d-block w-100" alt="Image 5">
-          </div>
-          <div class="carousel-item">
-            <img src="../results/plots/contour-plot-resnet56-ns-2-bs-128optsgd.png" class="d-block w-100" alt="Image 6">
-          </div>
-          <div class="carousel-item">
-            <img src="../results/plots/contour-plot-resnet-56-ns-4-bs-128optsgd.png" class="d-block w-100" alt="Image 7">
-          </div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls"
+            data-bs-slide="prev"
+            style="box-shadow: 5px 0px 5px -5px rgba(0, 0, 0, 0.5); background-color: rgba(0, 0, 0, 0.5);">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls"
+            data-bs-slide="next"
+            style="box-shadow: -5px 0px 5px -5px rgba(0, 0, 0, 0.5); background-color: rgba(0, 0, 0, 0.5);">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
         </div>
-        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev" style="box-shadow: 5px 0px 5px -5px rgba(0, 0, 0, 0.5); background-color: rgba(0, 0, 0, 0.5);">
-          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Previous</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next" style="box-shadow: -5px 0px 5px -5px rgba(0, 0, 0, 0.5); background-color: rgba(0, 0, 0, 0.5);">
-          <span class="carousel-control-next-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Next</span>
-        </button>
-      </div>
-      
-    <ol>
-      <li>
-        <p>1D (Line) Case:
-          $$ f(α) = L(θ∗ + αδ) $$</p>
-      </li>
-      <li>
-        <p>2D (Surface) Case:
-          $$ f(α, β) = L(θ∗ + αδ + βη) $$</p>
-      </li>
-    </ol>
-    <p>This technique, explores trajectories of different minimization methods and demonstrates that distinct
-      optimization
-      algorithms locate different local minima within the 2D projected space.</p>
-    <ul>
-      <li>Applied to analyze trajectories of various minimization methods.</li>
-      <li>Used to showcase differences in local minima found by different optimization algorithms.</li>
-    </ul>
-    <p>However, due to the computational burden of 2D plotting, these methods often yield low-resolution plots of small
-      regions, lacking a comprehensive representation of the complex non-convexity of loss surfaces.</p>
-    <h2 id="high-resolution-visualizations">High-Resolution Visualizations</h2>
-    <p>In this context, high-resolution visualizations are employed over large slices of weight space to gain a more
-      nuanced understanding of how network design influences the non-convex structure of loss surfaces. But these
-      require
-      a lot of compute.</p>
-    <h1 id="enhancing-visualization-with-filter-wise-normalization">Enhancing Visualization with Filter-Wise
-      Normalization
-    </h1>
-    <p>This study relies on plots using random direction vectors, δ and η, sampled from Gaussian distributions. However,
-      the inherent scale invariance of neural networks poses challenges in meaningful comparisons between different
-      minimizers or networks.</p>
-    <h2 id="scale-invariance-challenge">Scale Invariance Challenge</h2>
-    <ul>
-      <li>Network Weight Invariance: Multiplying or dividing weights by a factor maintains network behavior due to scale
-        invariance, especially with ReLU non-linearities and batch normalization.</li>
-      <li>Implications: Scale differences can lead to deceptive interpretations of loss function behavior, affecting
-        sharpness perception.</li>
-    </ul>
-    <h2 id="addressing-scale-invariance-with-filter-wise-normalization">Addressing Scale Invariance with Filter-Wise
-      Normalization</h2>
-    <ul>
-      <li>Objective: Eliminate scaling effects for meaningful plot comparisons.</li>
-      <li>Process: Normalize random Gaussian direction vectors filter-wise, ensuring each filter&#39;s norm matches that
-        of the corresponding filter in the original parameters.</li>
-      <li>Application: Not restricted to convolutional layers; extends to fully connected layers, treating them as a 1 ×
-        1
-        convolutional layer.</li>
-    </ul>
-    <h2 id="comparing-filter-wise-normalization">Comparing Filter-Wise Normalization</h2>
-    <ul>
-      <li>Affirmative Correlation: Filter-wise normalized plots show a correlation between sharpness and generalization
-        error.</li>
-      <li>Misleading Plots: Plots without filter normalization can be misleading in understanding loss surface
-        characteristics.</li>
-      <li>Superiority Over Layer-Wise Normalization: Filter-wise normalization demonstrates superior correlation between
-        sharpness and generalization compared to layer-wise or no normalization.</li>
-    </ul>
-    <section>
-      <h2>The Sharp vs Flat Dilemma</h2>
-      <p>
-        The aim of the section is to understand the nature of sharp/flat minima and the correlation with the test error.
-        The previous approach was to take a model trained on a small batch and a model trained on a large batch size and
-        interpolate between these two.
-        When the weight decay is zero then the L2 norm of the weights of small batch is higher than the norm of the
-        large
-        batch size.
-        This effect is reversed when we add a weight decay. This can be explained by the fact that a small batch results
-        in a large number of gradient updates, which result in a smaller L2 norm of the weights.
+      </section>
 
-      </p>
-    </section>
-    <div class="row">
+      <section>
+        <ol>
+          <li>
+            <p>1D (Line) Case:
+              $$ f(α) = L(θ∗ + αδ) $$</p>
+          </li>
+          <li>
+            <p>2D (Surface) Case:
+              $$ f(α, β) = L(θ∗ + αδ + βη) $$</p>
+          </li>
+        </ol>
+      </section>
+      <section>
 
-      <!-- Image 1 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../finalplots/vgg wd.jpeg" alt="VGG Weight Decay Effect" class="img-fluid">
-          <figcaption>VGG Weight Decay Effect</figcaption>
-        </figure>
-      </div>
+        <p>This technique, explores trajectories of different minimization methods and demonstrates that distinct
+          optimization
+          algorithms locate different local minima within the 2D projected space.</p>
+        <ul>
+          <li>Applied to analyze trajectories of various minimization methods.</li>
+          <li>Used to showcase differences in local minima found by different optimization algorithms.</li>
+        </ul>
+        <p>However, due to the computational burden of 2D plotting, these methods often yield low-resolution plots of
+          small
+          regions, lacking a comprehensive representation of the complex non-convexity of loss surfaces.</p>
+      </section>
+      <section>
 
-      <!-- Image 1 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../finalplots/vgg-11-wd-demonstration.png" alt="Weight Decay Effect" class="img-fluid">
-          <figcaption>Weight Decay Effect</figcaption>
-        </figure>
-      </div>
-    </div>
+        <h2 id="high-resolution-visualizations">High-Resolution Visualizations</h2>
+        <p>In this context, high-resolution visualizations are employed over large slices of weight space to gain a more
+          nuanced understanding of how network design influences the non-convex structure of loss surfaces. But these
+          require
+          a lot of compute.</p>
+      </section>
+      <section>
+        <h1 id="enhancing-visualization-with-filter-wise-normalization">Enhancing Visualization with Filter-Wise
+          Normalization
+        </h1>
+        <p>This study relies on plots using random direction vectors, δ and η, sampled from Gaussian distributions.
+          However,
+          the inherent scale invariance of neural networks poses challenges in meaningful comparisons between different
+          minimizers or networks.</p>
+      </section>
+      <section>
 
-    <div class="row">
+        <h2 id="scale-invariance-challenge">Scale Invariance Challenge</h2>
+        <ul>
+          <li>Network Weight Invariance: Multiplying or dividing weights by a factor maintains network behavior due to
+            scale
+            invariance, especially with ReLU non-linearities and batch normalization.</li>
+          <li>Implications: Scale differences can lead to deceptive interpretations of loss function behavior, affecting
+            sharpness perception.</li>
+        </ul>
+      </section>
+      <section>
 
-      <!-- Image 1 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-vgg-11-bs-128-wd-5e-4-sgd.png"
-            alt="VGG-11, Batch Size: 128, Weight Decay: 5e-4, Optimizer: SGD" class="img-fluid">
-          <figcaption>VGG-11, Batch Size: 128, Weight Decay: 5e-4, Optimizer: SGD</figcaption>
-        </figure>
-      </div>
+        <h2 id="addressing-scale-invariance-with-filter-wise-normalization">Addressing Scale Invariance with Filter-Wise
+          Normalization</h2>
+        <ul>
+          <li>Objective: Eliminate scaling effects for meaningful plot comparisons.</li>
+          <li>Process: Normalize random Gaussian direction vectors filter-wise, ensuring each filter&#39;s norm matches
+            that
+            of the corresponding filter in the original parameters.</li>
+          <li>Application: Not restricted to convolutional layers; extends to fully connected layers, treating them as a
+            1
+            ×
+            1
+            convolutional layer.</li>
+        </ul>
+      </section>
+      <section>
 
-      <!-- Image 2 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-vgg-11-bs-128-adam-5e-4.png"
-            alt="VGG-11, Batch Size: 128, Optimizer: Adam, Weight Decay: 5e-4" class="img-fluid">
-          <figcaption>VGG-11, Batch Size: 128, Optimizer: Adam, Weight Decay: 5e-4</figcaption>
-        </figure>
-      </div>
+        <h2 id="comparing-filter-wise-normalization">Comparing Filter-Wise Normalization</h2>
+        <ul>
+          <li>Affirmative Correlation: Filter-wise normalized plots show a correlation between sharpness and
+            generalization
+            error.</li>
+          <li>Misleading Plots: Plots without filter normalization can be misleading in understanding loss surface
+            characteristics.</li>
+          <li>Superiority Over Layer-Wise Normalization: Filter-wise normalization demonstrates superior correlation
+            between
+            sharpness and generalization compared to layer-wise or no normalization.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>The Sharp vs Flat Dilemma</h2>
+        <p>
+          The aim of the section is to understand the nature of sharp/flat minima and the correlation with the test
+          error.
+          The previous approach was to take a model trained on a small batch and a model trained on a large batch size
+          and
+          interpolate between these two.
+          When the weight decay is zero then the L2 norm of the weights of small batch is higher than the norm of the
+          large
+          batch size.
+          This effect is reversed when we add a weight decay. This can be explained by the fact that a small batch
+          results
+          in a large number of gradient updates, which result in a smaller L2 norm of the weights.
 
-      <!-- Image 3 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-vgg-11-bs-1024-wd-0-sgd.png"
-            alt="VGG-11, Batch Size: 1024, Weight Decay: 0, Optimizer: SGD" class="img-fluid">
-          <figcaption>VGG-11, Batch Size: 1024, Weight Decay: 0, Optimizer: SGD</figcaption>
-        </figure>
+        </p>
+      </section>
+      <div class="row">
+
+        <!-- Image 1 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../finalplots/vgg wd.jpeg" alt="VGG Weight Decay Effect" class="img-fluid">
+            <figcaption>VGG Weight Decay Effect</figcaption>
+          </figure>
+        </div>
+
+        <!-- Image 1 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../finalplots/vgg-11-wd-demonstration.png" alt="Weight Decay Effect" class="img-fluid">
+            <figcaption>Weight Decay Effect</figcaption>
+          </figure>
+        </div>
       </div>
 
-      <!-- Image 4 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-vgg-11-bs-1024-adam-5e-4.png"
-            alt="VGG-11, Batch Size: 1024, Optimizer: Adam, Weight Decay: 5e-4" class="img-fluid">
-          <figcaption>VGG-11, Batch Size: 1024, Optimizer: Adam, Weight Decay: 5e-4</figcaption>
-        </figure>
+      <div class="row">
+
+        <!-- Image 1 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-vgg-11-bs-128-wd-5e-4-sgd.png"
+              alt="VGG-11, Batch Size: 128, Weight Decay: 5e-4, Optimizer: SGD" class="img-fluid">
+            <figcaption>VGG-11, Batch Size: 128, Weight Decay: 5e-4, Optimizer: SGD</figcaption>
+          </figure>
+        </div>
+
+        <!-- Image 2 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-vgg-11-bs-128-adam-5e-4.png"
+              alt="VGG-11, Batch Size: 128, Optimizer: Adam, Weight Decay: 5e-4" class="img-fluid">
+            <figcaption>VGG-11, Batch Size: 128, Optimizer: Adam, Weight Decay: 5e-4</figcaption>
+          </figure>
+        </div>
+
+        <!-- Image 3 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-vgg-11-bs-1024-wd-0-sgd.png"
+              alt="VGG-11, Batch Size: 1024, Weight Decay: 0, Optimizer: SGD" class="img-fluid">
+            <figcaption>VGG-11, Batch Size: 1024, Weight Decay: 0, Optimizer: SGD</figcaption>
+          </figure>
+        </div>
+
+        <!-- Image 4 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-vgg-11-bs-1024-adam-5e-4.png"
+              alt="VGG-11, Batch Size: 1024, Optimizer: Adam, Weight Decay: 5e-4" class="img-fluid">
+            <figcaption>VGG-11, Batch Size: 1024, Optimizer: Adam, Weight Decay: 5e-4</figcaption>
+          </figure>
+        </div>
+
+        <!-- Image 5 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-vgg-19-bs-128-lr-0.1-wd-5e-4.png"
+              alt="VGG-19, Batch Size: 128, Learning Rate: 0.1, Weight Decay: 5e-4" class="img-fluid">
+            <figcaption>VGG-19, Batch Size: 128, Learning Rate: 0.1, Weight Decay: 5e-4</figcaption>
+          </figure>
+        </div>
+
       </div>
+
+      <div class="row">
+
+        <!-- Image 6 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-resnet-56-ns-4-bs-128optsgd.png"
+              alt="ResNet-56, No Shortcuts, Batch Size: 128, Optimizer: SGD" class="img-fluid">
+            <figcaption>ResNet-56, No Shortcuts, Batch Size: 128, Optimizer: SGD</figcaption>
+          </figure>
+        </div>
+
+        <!-- Image 7 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-resnet56-ns-2-bs-128optsgd.png"
+              alt="ResNet-56, No Shortcuts, Batch Size: 128, Optimizer: SGD" class="img-fluid">
+            <figcaption>ResNet-56, No Shortcuts, Batch Size: 128, Optimizer: SGD</figcaption>
+          </figure>
+        </div>
+
+        <!-- Image 8 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-:resnet-56-short-4.png"
+              alt="ResNet-56, Shortcuts, Batch Size: 128" class="img-fluid">
+            <figcaption>ResNet-56, Shortcuts, Batch Size: 128</figcaption>
+          </figure>
+        </div>
+
+        <!-- Image 9 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-:resnet-56-short-2.png"
+              alt="ResNet-56, Shortcuts, Batch Size: 128" class="img-fluid">
+            <figcaption>ResNet-56, Shortcuts, Batch Size: 128</figcaption>
+          </figure>
+        </div>
+
+        <!-- Image 10 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-:resnet-56-short-1.png"
+              alt="ResNet-56, Shortcuts, Batch Size: 128" class="img-fluid">
+            <figcaption>ResNet-56, Shortcuts, Batch Size: 128</figcaption>
+          </figure>
+        </div>
+
+      </div>
+
+      <div class="row">
+
+        <!-- Image 11 -->
+        <div class="col-md-2">
+          <figure class="text-center">
+            <img src="../results/plots/sharp-flat-plot-:resnet-20-short-1.png"
+              alt="ResNet-20, Shortcuts, Batch Size: 128" class="img-fluid">
+            <figcaption>ResNet-20, Shortcuts, Batch Size: 128</figcaption>
+          </figure>
+        </div>
+
+        <!-- Add more images here if needed -->
+
+      </div>
+
+      <section>
+        <h2 id="introduction-of-filter-normalization">Introduction of Filter Normalization</h2>
+        <p>The paper introduces filter normalization as a pivotal concept, offering an intuitive rationale for its
+          application. The focus shifts to investigating whether sharp minimizers exhibit better generalization compared
+          to
+          flat minimizers, emphasizing the correlation between sharpness and generalization error when filter
+          normalization
+          is
+          employed.</p>
+      </section>
+      <section>
+
+        <h2 id="sharpness-guided-comparison">Sharpness-Guided Comparison</h2>
+        <ul>
+          <li>Filter Normalization Impact: Enables meaningful side-by-side comparisons of sharpness.</li>
+          <li>Distorted Non-Normalized Plots: Without filter normalization, sharpness in plots may appear distorted and
+            unpredictable.</li>
+          <li>Weight Norm Growth: Illustrates the steady growth of weight norms during training without constraints,
+            emphasizing the role of weight decay.</li>
+        </ul>
+      </section>
+      <section>
+
+        <h2 id="filter-normalized-comparisons">Filter-Normalized Comparisons</h2>
+        <ul>
+          <li>Improved Sharpness Correlation: Filter-normalized plots showcase better correlation between sharpness and
+            generalization error.</li>
+          <li>Visualizing Minimizer Characteristics: Two random directions and contour plots reveal wider contours for
+            small-batch minimizers with non-zero weight decay.</li>
+        </ul>
+        <p>The study emphasizes the importance of filter normalization in accurate comparisons, challenging previous
+          misleading sharpness interpretations. Sharpness, when considered in the context of filter normalization,
+          aligns
+          more
+          closely with generalization error. Large batches may produce visually sharper minima, yet filter-normalized
+          comparisons unveil nuanced distinctions with higher test error.</p>
+      </section>
+      <section>
+        <h1 id="insights-into-trainability-non-convexity-structure-of-loss-surfaces">Insights into Trainability:
+          Non-Convexity
+          Structure of Loss Surfaces</h1>
+        <p>This section explores the trainability of neural networks by investigating the (non)convexity structure of
+          loss
+          surfaces. The study addresses the variations in the ease of minimizing neural loss functions, influenced by
+          factors
+          such as network architecture, skip connections, and initialization strategies.</p>
+      </section>
+      <section>
+        <h2 id="trainability-observations">Trainability Observations</h2>
+        <ul>
+          <li>Not all neural architectures are equally trainable. Skip connections play a vital role in training
+            extremely
+            deep networks.</li>
+          <li>Trainability is highly dependent on the initial parameters from which training starts.</li>
+        </ul>
+      </section>
+      <section>
+        <h2 id="empirical-study-questions">Empirical Study Questions</h2>
+        <ul>
+          <li>Investigate if loss functions exhibit significant non-convexity.</li>
+          <li>Explore why non-convexity is problematic in some situations but not in others.</li>
+          <li>Understand why some architectures are easier to train.</li>
+          <li>Examine the sensitivity of results to the choice of initialization.</li>
+        </ul>
+      </section>
+      <section>
+        <h2 id="architectural-variances">Architectural Variances</h2>
+        <h3 id="network-depth-influence">Network Depth Influence</h3>
+        <ul>
+          <li>VGG-like networks (ResNet-20/56/110-noshort) exhibit a transition from nearly convex to chaotic behavior
+            as
+            depth increases.</li>
+          <li>Shortcut connections prevent the transition to chaotic behavior, preserving consistent geometry across
+            different
+            depths.</li>
+        </ul>
+      </section>
+      <section>
+        <h3 id="wide-models-vs-thin-models">Wide Models vs Thin Models</h3>
+        <ul>
+          <li>Wide-ResNets with increased filter numbers demonstrate loss landscapes without chaotic behavior,
+            emphasizing
+            the
+            role of width in preventing chaos.</li>
+          <li>Notable correlation between sharpness, network width, and test error.</li>
+        </ul>
+      </section>
+      <section>
+        <h3 id="implications-for-network-initialization">Implications for Network Initialization</h3>
+        <ul>
+          <li>Loss landscapes appear partitioned into well-defined regions of low loss and convex contours, surrounded
+            by
+            high-loss chaotic regions.</li>
+          <li>The partitioning of chaotic and convex regions explains the importance of good initialization strategies
+            and
+            the
+            ease of training for &quot;good&quot; architectures.</li>
+        </ul>
+      </section>
+      <section>
+        <h2 id="landscape-geometry-and-generalization">Landscape Geometry and Generalization</h2>
+        <ul>
+          <li>Visually flatter minimizers consistently correspond to lower test error, reinforcing the importance of
+            filter
+            normalization for visualizing loss function geometry.</li>
+          <li>Deep networks without skip connections (chaotic landscapes) result in worse training and test error.</li>
+          <li>More convex landscapes, such as Wide-ResNets, generalize better with lower error values.</li>
+        </ul>
+        <h3 id="cautionary-note-on-convexity-interpretation">Cautionary Note on Convexity Interpretation</h3>
+        <ul>
+          <li>Viewing loss surfaces involves significant dimensionality reduction.</li>
+          <li>Use of principle curvatures to measure convexity and identify dominant positive curvatures in
+            low-dimensional
+            surfaces.</li>
+        </ul>
+        <h3 id="confirmation-through-eigenvalues-analysis">Confirmation through Eigenvalues Analysis</h3>
+        <ul>
+          <li>Mapping the ratio $$\lvert\frac{λ_{min}}{λ_{max}}\rvert$$ across the loss surfaces confirms that
+            convex-looking regions correspond to
+            areas with insignificant negative eigenvalues.</li>
+          <li>Visualization captures significant non-convex features, reassuringly aligning with eigenvalues analysis.
+          </li>
+        </ul>
+        <p>The study provides valuable insights into neural network trainability, emphasizing the role of architecture,
+          skip
+          connections, and initialization strategies in shaping the (non)convexity structure of loss surfaces.</p>
+        <h1 id="visualizing-optimization-paths-from-random-to-pca-directions">Visualizing Optimization Paths: From
+          Random
+          to
+          PCA Directions</h1>
+        <p>We explore some methods for effectively visualizing optimization trajectories, exploring the limitations of
+          random
+          directions and proposing an approach based on Principal Component Analysis (PCA) to capture and plot
+          meaningful
+          variation.</p>
+      </section>
 
       <!-- Image 5 -->
       <div class="col-md-2">
         <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-vgg-19-bs-128-lr-0.1-wd-5e-4.png"
-            alt="VGG-19, Batch Size: 128, Learning Rate: 0.1, Weight Decay: 5e-4" class="img-fluid">
-          <figcaption>VGG-19, Batch Size: 128, Learning Rate: 0.1, Weight Decay: 5e-4</figcaption>
+          <img src="../finalplots/traj cnn.jpeg" alt="CNN Optimization Path Trajectory" class="img-fluid">
+          <figcaption>CNN Optimization Path Trajectory</figcaption>
         </figure>
       </div>
 
-    </div>
-
-    <div class="row">
-
-      <!-- Image 6 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-resnet-56-ns-4-bs-128optsgd.png"
-            alt="ResNet-56, No Shortcuts, Batch Size: 128, Optimizer: SGD" class="img-fluid">
-          <figcaption>ResNet-56, No Shortcuts, Batch Size: 128, Optimizer: SGD</figcaption>
-        </figure>
-      </div>
-
-      <!-- Image 7 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-resnet56-ns-2-bs-128optsgd.png"
-            alt="ResNet-56, No Shortcuts, Batch Size: 128, Optimizer: SGD" class="img-fluid">
-          <figcaption>ResNet-56, No Shortcuts, Batch Size: 128, Optimizer: SGD</figcaption>
-        </figure>
-      </div>
-
-      <!-- Image 8 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-:resnet-56-short-4.png" alt="ResNet-56, Shortcuts, Batch Size: 128"
-            class="img-fluid">
-          <figcaption>ResNet-56, Shortcuts, Batch Size: 128</figcaption>
-        </figure>
-      </div>
-
-      <!-- Image 9 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-:resnet-56-short-2.png" alt="ResNet-56, Shortcuts, Batch Size: 128"
-            class="img-fluid">
-          <figcaption>ResNet-56, Shortcuts, Batch Size: 128</figcaption>
-        </figure>
-      </div>
-
-      <!-- Image 10 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-:resnet-56-short-1.png" alt="ResNet-56, Shortcuts, Batch Size: 128"
-            class="img-fluid">
-          <figcaption>ResNet-56, Shortcuts, Batch Size: 128</figcaption>
-        </figure>
-      </div>
-
-    </div>
-
-    <div class="row">
-
-      <!-- Image 11 -->
-      <div class="col-md-2">
-        <figure class="text-center">
-          <img src="../results/plots/sharp-flat-plot-:resnet-20-short-1.png" alt="ResNet-20, Shortcuts, Batch Size: 128"
-            class="img-fluid">
-          <figcaption>ResNet-20, Shortcuts, Batch Size: 128</figcaption>
-        </figure>
-      </div>
-
-      <!-- Add more images here if needed -->
-
-    </div>
-
-    <h2 id="introduction-of-filter-normalization">Introduction of Filter Normalization</h2>
-    <p>The paper introduces filter normalization as a pivotal concept, offering an intuitive rationale for its
-      application. The focus shifts to investigating whether sharp minimizers exhibit better generalization compared to
-      flat minimizers, emphasizing the correlation between sharpness and generalization error when filter normalization
-      is
-      employed.</p>
-    <h2 id="sharpness-guided-comparison">Sharpness-Guided Comparison</h2>
-    <ul>
-      <li>Filter Normalization Impact: Enables meaningful side-by-side comparisons of sharpness.</li>
-      <li>Distorted Non-Normalized Plots: Without filter normalization, sharpness in plots may appear distorted and
-        unpredictable.</li>
-      <li>Weight Norm Growth: Illustrates the steady growth of weight norms during training without constraints,
-        emphasizing the role of weight decay.</li>
-    </ul>
-    <h2 id="filter-normalized-comparisons">Filter-Normalized Comparisons</h2>
-    <ul>
-      <li>Improved Sharpness Correlation: Filter-normalized plots showcase better correlation between sharpness and
-        generalization error.</li>
-      <li>Visualizing Minimizer Characteristics: Two random directions and contour plots reveal wider contours for
-        small-batch minimizers with non-zero weight decay.</li>
-    </ul>
-    <p>The study emphasizes the importance of filter normalization in accurate comparisons, challenging previous
-      misleading sharpness interpretations. Sharpness, when considered in the context of filter normalization, aligns
-      more
-      closely with generalization error. Large batches may produce visually sharper minima, yet filter-normalized
-      comparisons unveil nuanced distinctions with higher test error.</p>
-    <h1 id="insights-into-trainability-non-convexity-structure-of-loss-surfaces">Insights into Trainability:
-      Non-Convexity
-      Structure of Loss Surfaces</h1>
-    <p>This section explores the trainability of neural networks by investigating the (non)convexity structure of loss
-      surfaces. The study addresses the variations in the ease of minimizing neural loss functions, influenced by
-      factors
-      such as network architecture, skip connections, and initialization strategies.</p>
-    <h2 id="trainability-observations">Trainability Observations</h2>
-    <ul>
-      <li>Not all neural architectures are equally trainable. Skip connections play a vital role in training extremely
-        deep networks.</li>
-      <li>Trainability is highly dependent on the initial parameters from which training starts.</li>
-    </ul>
-    <h2 id="empirical-study-questions">Empirical Study Questions</h2>
-    <ul>
-      <li>Investigate if loss functions exhibit significant non-convexity.</li>
-      <li>Explore why non-convexity is problematic in some situations but not in others.</li>
-      <li>Understand why some architectures are easier to train.</li>
-      <li>Examine the sensitivity of results to the choice of initialization.</li>
-    </ul>
-    <h2 id="architectural-variances">Architectural Variances</h2>
-    <h3 id="network-depth-influence">Network Depth Influence</h3>
-    <ul>
-      <li>VGG-like networks (ResNet-20/56/110-noshort) exhibit a transition from nearly convex to chaotic behavior as
-        depth increases.</li>
-      <li>Shortcut connections prevent the transition to chaotic behavior, preserving consistent geometry across
-        different
-        depths.</li>
-    </ul>
-    <h3 id="wide-models-vs-thin-models">Wide Models vs Thin Models</h3>
-    <ul>
-      <li>Wide-ResNets with increased filter numbers demonstrate loss landscapes without chaotic behavior, emphasizing
-        the
-        role of width in preventing chaos.</li>
-      <li>Notable correlation between sharpness, network width, and test error.</li>
-    </ul>
-    <h3 id="implications-for-network-initialization">Implications for Network Initialization</h3>
-    <ul>
-      <li>Loss landscapes appear partitioned into well-defined regions of low loss and convex contours, surrounded by
-        high-loss chaotic regions.</li>
-      <li>The partitioning of chaotic and convex regions explains the importance of good initialization strategies and
-        the
-        ease of training for &quot;good&quot; architectures.</li>
-    </ul>
-    <h2 id="landscape-geometry-and-generalization">Landscape Geometry and Generalization</h2>
-    <ul>
-      <li>Visually flatter minimizers consistently correspond to lower test error, reinforcing the importance of filter
-        normalization for visualizing loss function geometry.</li>
-      <li>Deep networks without skip connections (chaotic landscapes) result in worse training and test error.</li>
-      <li>More convex landscapes, such as Wide-ResNets, generalize better with lower error values.</li>
-    </ul>
-    <h3 id="cautionary-note-on-convexity-interpretation">Cautionary Note on Convexity Interpretation</h3>
-    <ul>
-      <li>Viewing loss surfaces involves significant dimensionality reduction.</li>
-      <li>Use of principle curvatures to measure convexity and identify dominant positive curvatures in low-dimensional
-        surfaces.</li>
-    </ul>
-    <h3 id="confirmation-through-eigenvalues-analysis">Confirmation through Eigenvalues Analysis</h3>
-    <ul>
-      <li>Mapping the ratio $$\lvert\frac{λ_{min}}{λ_{max}}\rvert$$ across the loss surfaces confirms that convex-looking regions correspond to
-        areas with insignificant negative eigenvalues.</li>
-      <li>Visualization captures significant non-convex features, reassuringly aligning with eigenvalues analysis.</li>
-    </ul>
-    <p>The study provides valuable insights into neural network trainability, emphasizing the role of architecture, skip
-      connections, and initialization strategies in shaping the (non)convexity structure of loss surfaces.</p>
-    <h1 id="visualizing-optimization-paths-from-random-to-pca-directions">Visualizing Optimization Paths: From Random to
-      PCA Directions</h1>
-    <p>We explore some methods for effectively visualizing optimization trajectories, exploring the limitations of
-      random
-      directions and proposing an approach based on Principal Component Analysis (PCA) to capture and plot meaningful
-      variation.</p>
-
-            <!-- Image 5 -->
-            <div class="col-md-2">
-              <figure class="text-center">
-                <img src="../finalplots/traj cnn.jpeg"
-                  alt="CNN Optimization Path Trajectory" class="img-fluid">
-                <figcaption>CNN Optimization Path Trajectory</figcaption>
-              </figure>
-            </div>
-
-    <h2 id="limitations-of-random-directions">Limitations of Random Directions</h2>
-    <ul>
-      <li>Ineffectiveness of Random Directions: Randomly chosen vectors fail to capture the variation in optimization
-        trajectories, as observed by several authors.</li>
-      <li>Failed Visualizations: Examples in Figure 8 demonstrate the inadequacy of capturing motion using random
-        directions.</li>
-    </ul>
-    <h3 id="notable-attempts-">Notable Attempts:</h3>
-    <ol>
-      <li>Projection onto Random Plane: Almost no motion captured, leading to seemingly random walk appearance.</li>
-      <li>One Direction from Initialization to Solution + One Random Direction: Random axis captures minimal variation,
-        resulting in a misleading straight-line appearance.</li>
-    </ol>
-    <h2 id="exploring-low-dimensionality-of-optimization-trajectories">Exploring Low Dimensionality of Optimization
-      Trajectories</h2>
-    <ul>
-      <li>Randomly chosen vectors often lie orthogonal to low-rank spaces containing optimization paths.</li>
-      <li>Utilizing PCA directions to validate low dimensionality and produce effective visualizations.</li>
-      <li>Applying PCA to model parameter matrices at different epochs and selecting two most explanatory directions.
-      </li>
-    </ul>
-    <h2 id="effective-trajectory-plotting-with-pca-directions">Effective Trajectory Plotting with PCA Directions</h2>
-    <ul>
-      <li>PCA provides a measure of how much variation is captured by each direction.</li>
-      <li>Trajectories along PCA directions plotted on loss surfaces.</li>
-      <li>Red dots indicate epochs where the learning rate was decreased.</li>
-    </ul>
-    <p>The study introduces an approach based on PCA directions, providing an effective means to visualize optimization
-      trajectories and measure the variation captured along each axis. This method overcomes the limitations of random
-      directions, offering valuable insights into the dynamics of optimization paths.</p>
-    <h1 id="dynamics-of-optimization-paths-from-early-to-later-stages">Dynamics of Optimization Paths: From Early to
-      Later
-      Stages</h1>
-    <p>In the early stages of training, optimization paths tend to align perpendicular to the contours of the loss
-      surface, following the expected behavior of non-stochastic gradient descent. However, as training progresses, the
-      influence of stochasticity becomes more pronounced, particularly in scenarios involving weight decay and small
-      batches.</p>
-    <h2 id="training-dynamics-overview">Training Dynamics Overview</h2>
-    <ul>
-      <li>Early Training Behavior: Paths align perpendicular to loss surface contours, mirroring non-stochastic gradient
-        descent.</li>
-      <li>Later Training Stages: Increased stochasticity observed, especially in plots with weight decay and small
-        batches.</li>
-      <li>Effects of Weight Decay and Small Batches:<ul>
-          <li>Parallel Movement: Paths turn nearly parallel to contours and exhibit an &quot;orbit&quot; around the
-            solution, amplified by gradient noise in weight decay and small batches.</li>
-          <li>Stepsize Impact: Reducing stepsize (at red dot) decreases effective noise, causing a kink in the path as
-            the
-            trajectory converges into the nearest local minimizer.</li>
+      <section>
+        <h2 id="limitations-of-random-directions">Limitations of Random Directions</h2>
+        <ul>
+          <li>Ineffectiveness of Random Directions: Randomly chosen vectors fail to capture the variation in
+            optimization
+            trajectories, as observed by several authors.</li>
+          <li>Failed Visualizations: Examples in Figure 8 demonstrate the inadequacy of capturing motion using random
+            directions.</li>
         </ul>
-      </li>
-    </ul>
-    <h2 id="dimensionality-of-descent-paths">Dimensionality of Descent Paths</h2>
-    <ul>
-      <li>Descent paths show very low dimensionality, with 40% to 90% of the variation confined to a space of only 2
-        dimensions.</li>
-      <li>Optimization trajectories appear dominated by movement in the direction of a nearby attractor.</li>
-      <li>Consistent with previous observations, where non-chaotic landscapes were characterized by wide, nearly convex
-        minimizers.</li>
-    </ul>
-    <p>The analysis provides insights into the evolving dynamics of optimization paths, highlighting the shift from
-      early
-      perpendicular alignment to later stages characterized by increased stochasticity and unique behaviors in the
-      presence of weight decay and small batches. The low dimensionality observed aligns with previous landscape
-      observations, reinforcing the connection between optimization path behavior and loss surface characteristics.</p>
+        <h3 id="notable-attempts-">Notable Attempts:</h3>
+        <ol>
+          <li>Projection onto Random Plane: Almost no motion captured, leading to seemingly random walk appearance.</li>
+          <li>One Direction from Initialization to Solution + One Random Direction: Random axis captures minimal
+            variation,
+            resulting in a misleading straight-line appearance.</li>
+        </ol>
+      </section>
+      <section>
+        <h2 id="exploring-low-dimensionality-of-optimization-trajectories">Exploring Low Dimensionality of Optimization
+          Trajectories</h2>
+        <ul>
+          <li>Randomly chosen vectors often lie orthogonal to low-rank spaces containing optimization paths.</li>
+          <li>Utilizing PCA directions to validate low dimensionality and produce effective visualizations.</li>
+          <li>Applying PCA to model parameter matrices at different epochs and selecting two most explanatory
+            directions.
+          </li>
+        </ul>
+      </section>
+      <section>
+        <h2 id="effective-trajectory-plotting-with-pca-directions">Effective Trajectory Plotting with PCA Directions
+        </h2>
+        <ul>
+          <li>PCA provides a measure of how much variation is captured by each direction.</li>
+          <li>Trajectories along PCA directions plotted on loss surfaces.</li>
+          <li>Red dots indicate epochs where the learning rate was decreased.</li>
+        </ul>
+        <p>The study introduces an approach based on PCA directions, providing an effective means to visualize
+          optimization
+          trajectories and measure the variation captured along each axis. This method overcomes the limitations of
+          random
+          directions, offering valuable insights into the dynamics of optimization paths.</p>
+      </section>
+      <section>
+        <h1 id="dynamics-of-optimization-paths-from-early-to-later-stages">Dynamics of Optimization Paths: From Early to
+          Later
+          Stages</h1>
+        <p>In the early stages of training, optimization paths tend to align perpendicular to the contours of the loss
+          surface, following the expected behavior of non-stochastic gradient descent. However, as training progresses,
+          the
+          influence of stochasticity becomes more pronounced, particularly in scenarios involving weight decay and small
+          batches.</p>
+      </section>
+      <section>
+        <h2 id="training-dynamics-overview">Training Dynamics Overview</h2>
+        <ul>
+          <li>Early Training Behavior: Paths align perpendicular to loss surface contours, mirroring non-stochastic
+            gradient
+            descent.</li>
+          <li>Later Training Stages: Increased stochasticity observed, especially in plots with weight decay and small
+            batches.</li>
+          <li>Effects of Weight Decay and Small Batches:<ul>
+              <li>Parallel Movement: Paths turn nearly parallel to contours and exhibit an &quot;orbit&quot; around the
+                solution, amplified by gradient noise in weight decay and small batches.</li>
+              <li>Stepsize Impact: Reducing stepsize (at red dot) decreases effective noise, causing a kink in the path
+                as
+                the
+                trajectory converges into the nearest local minimizer.</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+      <section>
+        <h2 id="dimensionality-of-descent-paths">Dimensionality of Descent Paths</h2>
+        <ul>
+          <li>Descent paths show very low dimensionality, with 40% to 90% of the variation confined to a space of only 2
+            dimensions.</li>
+          <li>Optimization trajectories appear dominated by movement in the direction of a nearby attractor.</li>
+          <li>Consistent with previous observations, where non-chaotic landscapes were characterized by wide, nearly
+            convex
+            minimizers.</li>
+        </ul>
+        <p>The analysis provides insights into the evolving dynamics of optimization paths, highlighting the shift from
+          early
+          perpendicular alignment to later stages characterized by increased stochasticity and unique behaviors in the
+          presence of weight decay and small batches. The low dimensionality observed aligns with previous landscape
+          observations, reinforcing the connection between optimization path behavior and loss surface characteristics.
+        </p>
+      </section>
 
-
-    <footer>
-      <!-- <p>Code and plots are available at <a href="https://github.com/tomgoldstein/loss-landscape" target="_blank">https://github.com/tomgoldstein/loss-landscape</a></p> -->
-    </footer>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
-    crossorigin="anonymous"></script>
+      <footer>
+        <!-- <p>Code and plots are available at <a href="https://github.com/tomgoldstein/loss-landscape" target="_blank">https://github.com/tomgoldstein/loss-landscape</a></p> -->
+      </footer>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+      crossorigin="anonymous"></script>
+    <script type="text/javascript">
+      // make each paragraph a different color
+      const elements = []
+      for (let el of document.getElementsByTagName("section")) {
+        elements.push(el)
+      }
+      for (let i = 0; i < elements.length; i++) elements[i].style.color = `hsl(${i * 30}, 50%, 50%)`;
+      // set the background color of the body
+      document.body.style.backgroundColor = "transparent !important";  
+    </script>
 </body>
 
 </html>

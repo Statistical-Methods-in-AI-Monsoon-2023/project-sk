@@ -57,11 +57,33 @@ function process_data(data, log_plot = false) {
 		}
 	}
 	normalize(data)
+	perturb_noise(data)
 	blend_mesh(mesh.geometry, data)
 	// const cp = make_cp()
 	// mesh.add(cp)
 	// plot_contour(cp, data)
 	return { mesh, width, height }
+}
+
+function perturb_noise(data) {
+	const width = data.length, height = data[0].length
+	const offset = (x, y) => x * width + y
+	const noise = new Array(width * height)
+	// add perlin noise
+	for (let x = 0; x < width; x++) {
+		for (let y = 0; y < height; y++) {
+
+			noise[offset(x, y)] = Math.random() * 0.05
+		}
+	}
+	// add noise to data
+	for (let x = 0; x < width; x++) {
+		for (let y = 0; y < height; y++) {
+			data[x][y].z += noise[offset(x, y)]
+		}
+	}
+
+
 }
 
 function normalize(data) {
@@ -108,15 +130,15 @@ function plot_contour(cp, data) {
 	const ctx = texture.getContext('2d')
 	const width = data.length, height = data[0].length
 	// ctx.scale(width, height)
-	for(let radius=0; radius<width; radius++) {
-		for(let angle=0; angle<Math.PI*2; angle+=0.01) {
+	for (let radius = 0; radius < width; radius++) {
+		for (let angle = 0; angle < Math.PI * 2; angle += 0.01) {
 			const x = Math.floor(radius * Math.cos(angle) + width / 2)
 			const y = Math.floor(radius * Math.sin(angle) + height / 2)
 			if (x < 0 || x >= width || y < 0 || y >= height) {
 				continue
 			}
 			ctx.fillStyle = `rgba(255, 0, 0, ${data[x][y].z})`
-				ctx.fillRect(x, y, 0.1, 0.1)
+			ctx.fillRect(x, y, 0.1, 0.1)
 		}
 	}
 	ctx.fill()
