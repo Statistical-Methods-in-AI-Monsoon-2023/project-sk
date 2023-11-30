@@ -110,7 +110,7 @@ for hyperparam in combo:
     new_cmds = [
         f"# task: {filename}",
         f"mkdir -p logs", f"python3 mp.py {argstring}",
-        # f"python3 vis_mp.py --weight_path {weights_path} --model {model} --range {50}"
+        # f"python3 vis_mp.py --weight_path {weights_path} --range {20}"
     ]
 
     if not args.merge:
