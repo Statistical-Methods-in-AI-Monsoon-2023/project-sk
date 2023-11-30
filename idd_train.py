@@ -19,6 +19,7 @@ import argparse
 import math
 
 parser = argparse.ArgumentParser(description='Train a model on CIFAR10')
+parser.add_argument('--data', type=str, default="../idd_train", help='dataset path for IDD')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train for')
 parser.add_argument('--batch_size', type=int, default=128, help='Batch size')
 parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate')
