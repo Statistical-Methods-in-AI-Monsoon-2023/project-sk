@@ -82,29 +82,24 @@ def vis(rank, model, dirn1, dirn2, criterion, steps, indices, output, args):
 def get_eigvecs(args):
     models = []
     fsorted = sorted(os.listdir(args.weight_path), key=lambda x: int(os.path.splitext(x)[0]))
+    concats = []
+    global finalmodel
     for file in fsorted:
         if file.endswith(".pt"):
             model = torch.load(os.path.join(args.weight_path, file), map_location=device)
             model.eval()
-            models.append(model)
+            finalmodel = model
+            concat = [param.reshape(-1) for param in model.parameters()]
+            filter = []
+            concat = torch.cat(concat).cpu().detach().numpy()
+            if not args.include_bn:
+                for p in model.parameters():
+                    fn = torch.zeros_like if len(p.shape) == 1 else torch.ones_like
+                    filter.append(fn(p).reshape(-1))
+                filter_concat = torch.cat(filter).cpu().detach().numpy()
+                concat = concat * filter
 
-    global finalmodel
-    finalmodel = models[-1]
-    concats = []
-    
-    for i in range(len(models)):
-        model = models[i]
-        concat = [param.reshape(-1) for param in model.parameters()]
-        filter = []
-        concat = torch.cat(concat).cpu().detach().numpy()
-        if not args.include_bn:
-            for p in model.parameters():
-                fn = torch.zeros_like if len(p.shape) == 1 else torch.ones_like
-                filter.append(fn(p).reshape(-1))
-            filter_concat = torch.cat(filter).cpu().detach().numpy()
-            concat = concat * filter
-
-        concats.append(concat)
+            concats.append(concat)
 
     diff_concats = []
 
