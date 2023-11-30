@@ -46,11 +46,21 @@ function get_color(val) {
 	return from_color.lerpHSL(to_color, val)
 }
 
-function process_data(data) {
+function process_data(data, log_plot = false) {
 	const width = data.length, height = data[0].length
 	const mesh = make_mesh(width, height)
+	if (log_plot) {
+		for (let x = 0; x < width; x++) {
+			for (let y = 0; y < height; y++) {
+				data[x][y].z = Math.log(1 + data[x][y].z)
+			}
+		}
+	}
 	normalize(data)
 	blend_mesh(mesh.geometry, data)
+	// const cp = make_cp()
+	// mesh.add(cp)
+	// plot_contour(cp, data)
 	return { mesh, width, height }
 }
 
@@ -78,6 +88,47 @@ function normalize(data) {
 	}
 	// console.log("max_x", max_x, "max_y", max_y, "max_z", max_z)
 	// console.log("min_x", min_x, "min_y", min_y, "min_z", min_z)
+}
+
+function make_cp() {
+	// add contour plane
+	const contour_plane_geo = new THREE.PlaneGeometry(1, 1)
+	const contour_plane_mat = new THREE.MeshStandardMaterial({
+		// color: 0x000000,
+		// transparent: true,
+		// opacity: 0.2,
+		side: THREE.DoubleSide,
+	})
+	const contour_plane = new THREE.Mesh(contour_plane_geo, contour_plane_mat)
+	return contour_plane
+}
+
+function plot_contour(cp, data) {
+	const texture = document.createElement('canvas')
+	const ctx = texture.getContext('2d')
+	const width = data.length, height = data[0].length
+	// ctx.scale(width, height)
+	for(let radius=0; radius<width; radius++) {
+		for(let angle=0; angle<Math.PI*2; angle+=0.01) {
+			const x = Math.floor(radius * Math.cos(angle) + width / 2)
+			const y = Math.floor(radius * Math.sin(angle) + height / 2)
+			if (x < 0 || x >= width || y < 0 || y >= height) {
+				continue
+			}
+			ctx.fillStyle = `rgba(255, 0, 0, ${data[x][y].z})`
+				ctx.fillRect(x, y, 0.1, 0.1)
+		}
+	}
+	ctx.fill()
+	world.page_div.innerHTML = ""
+	world.page_div.appendChild(texture)
+	const textureLoader = new THREE.TextureLoader()
+	const texture1 = textureLoader.load(texture.toDataURL())
+	texture1.wrapS = THREE.RepeatWrapping
+	texture1.wrapT = THREE.RepeatWrapping
+	texture1.repeat.set(1, 1)
+	cp.material.map = texture1
+	cp.material.needsUpdate = true
 }
 
 function make_mesh(width = 20, height = 20) {
@@ -173,7 +224,7 @@ function load_model_name() {
 		for (let plot_name in array) {
 			plots[plot_name] = {
 				data: array[plot_name],
-				processed: process_data(array[plot_name]),
+				processed: process_data(array[plot_name], world.log_plot),
 				visible: first,
 			}
 			if (first) {

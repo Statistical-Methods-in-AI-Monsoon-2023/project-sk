@@ -36,6 +36,18 @@ function init_gui() {
 		.name('Choose Model')
 		.onChange(load_model_name)
 
+	// log option
+	gui.add(world, 'log_plot')
+		.name('Log Plot')
+		.onChange(load_model_name)
+
+	// show terrain option
+	gui.add(world, 'show_terrain')
+		.name('Show Terrain')
+		.onChange(() => {
+			world.physics.terrainMesh.visible = world.show_terrain
+		})
+
 	world.gui = gui
 }
 

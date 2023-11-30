@@ -75,13 +75,13 @@ function add_page() {
 	const div = document.createElement('div')
 	div.style.width = '480px'
 	div.style.height = '360px'
-	div.style.backgroundColor = '#000'
+	// div.style.backgroundColor = '#000'
 
 	const iframe = document.createElement('iframe')
 	iframe.style.width = '480px'
 	iframe.style.height = '360px'
 	iframe.style.border = '0px'
-	iframe.src = "https://jtuckerk.github.io/loss_landscape.html"
+	iframe.src = "./blog.html"
 	div.appendChild(iframe)
 
 	const page = new CSS3DObject(div)
@@ -90,6 +90,7 @@ function add_page() {
 	scene.add(page)
 
 	world.page = page
+	world.page_div = div
 }
 
 function build_scene() {

@@ -9,6 +9,21 @@
 	"2dvgg_extended_plot": "2dvgg_extended_plot.json",
 	"2dvgg": "2dvgg.json",
 	"2d-short12": "2d-short128.json",
-	"2dsave" : "2dsave.json",
-	"2d_noshort_128" : "2d_noshort_128.json"
+	"2dsave": "2dsave.json",
+	"2d_noshort_128": "2d_noshort_128.json",
+	"resnet-56-short-4": "batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-56-short-4_optimizer:sgd_save_every:-1_weight_decay:0.0005_world_size:4.json",
+	"resnet-56-short-2": "batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-56-short-2_optimizer:sgd_save_every:-1_weight_decay:0.0005_world_size:4.json",
+	"resnet-56-short-1": "batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-56-short-1_optimizer:sgd_save_every:1_weight_decay:0.0005_world_size:4.json",
+	"resnet-20-short-1": "batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-20-short-1_optimizer:sgd_save_every:1_weight_decay:0.0005_world_size:4.json",
+	"vgg-11-bs-128-wd-5e-4-sgd": "vgg-11-bs-128-wd-5e-4-sgd.json",
+	"vgg-11-bs-128-adam-5e-4": "vgg-11-bs-128-adam-5e-4.json",
+	"vgg-11-bs-1024-wd-0-sgd": "vgg-11-bs-1024-wd-0-sgd.json",
+	"vgg-11-bs-1024-adam-5e-4": "vgg-11-bs-1024-adam-5e-4.json",
+	"vgg-19-bs-128-lr-0.1-wd-5e-4": "vgg-19-bs-128-lr-0.1-wd-5e-4.json",
+	"resnet56-ns-2-bs-128optsgd": "resnet56-ns-2-bs-128optsgd.json",
+	"resnet-56-ns-4-bs-128optsgd": "resnet-56-ns-4-bs-128optsgd.json",
+	"batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-56-short-4_optimizer:sgd_save_every:-1_weight_decay:0.0005_world_size:4": "batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-56-short-4_optimizer:sgd_save_every:-1_weight_decay:0.0005_world_size:4.json",
+	"batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-56-short-2_optimizer:sgd_save_every:-1_weight_decay:0.0005_world_size:4": "batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-56-short-2_optimizer:sgd_save_every:-1_weight_decay:0.0005_world_size:4.json",
+	"batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-56-short-1_optimizer:sgd_save_every:1_weight_decay:0.0005_world_size:4": "batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-56-short-1_optimizer:sgd_save_every:1_weight_decay:0.0005_world_size:4.json",
+	"batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-20-short-1_optimizer:sgd_save_every:1_weight_decay:0.0005_world_size:4": "batch_size:128_dataset:cifar10_epochs:300_lr:0.1_model:resnet-20-short-1_optimizer:sgd_save_every:1_weight_decay:0.0005_world_size:4.json"
 }

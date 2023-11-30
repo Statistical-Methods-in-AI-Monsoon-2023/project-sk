@@ -36,11 +36,13 @@ const world = {
 		}
 	},
 	model_names: {},
+	log_plot: false,
 	active_model: null,
 	model_path_prefix:"plot_json/",
 
 	Ammo: null,
 	physics: {},
+	show_terrain: false,
 	origin: new THREE.Vector3(-0.5, 0, -0.5),
 	
 	page: null,

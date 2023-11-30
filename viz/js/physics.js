@@ -50,11 +50,6 @@ function init() {
 	initGraphics();
 
 	initPhysics();
-
-	// gui physics options
-	if (world.physics_folder) world.physics_folder.destroy()
-	world.physics_folder = world.gui.addFolder('Physics')
-	world.physics_folder.add(world.physics.terrainMesh, 'visible').name('Show Terrain')
 }
 
 function initGraphics() {

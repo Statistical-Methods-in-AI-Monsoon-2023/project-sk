@@ -54,6 +54,36 @@ function init_orbit() {
 
 	load_orbit(orbit_cam, orbit)
 	orbit.addEventListener('change', save_orbit(orbit_cam, orbit))
+	// orbit.addEventListener('change', function () {
+	// 	// move the page to a fixed distance from the camera, facing the camera
+	// 	const { page } = world
+	// 	if (!page) return
+
+	// 	const targetPosition = orbit_cam.position.clone()
+	// 		// position the page in front of the camera
+	// 		.add(orbit_cam.getWorldDirection(new THREE.Vector3()).multiplyScalar(7))
+	// 		// move the page to the top left
+	// 		.add(new THREE.Vector3(-2.5, 2.5, 0))
+	// 	const targetQuaternion = orbit_cam.quaternion.clone()
+
+	// 	const transitions = [
+	// 		[page.position, targetPosition],
+	// 		[page.quaternion, targetQuaternion],
+	// 	]
+
+	// 	// smooth transition
+	// 	for (const [start, end] of transitions) {
+	// 		new TWEEN.Tween(start)
+	// 			.to(end, 1000)
+	// 			.easing(TWEEN.Easing.Quadratic.InOut)
+	// 			.onUpdate(() => {
+	// 				orbit_cam.updateProjectionMatrix()
+	// 				orbit.update()
+	// 			}).start()
+	// 	}
+
+
+	// })
 }
 
 function save_orbit(orbit_cam, controls) {
