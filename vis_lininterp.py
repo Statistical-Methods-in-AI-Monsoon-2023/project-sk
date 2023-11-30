@@ -32,6 +32,7 @@ parser.add_argument('--range', type=int, default=20, help='In [-1, 1] the number
 
 def load_model_with_weights(path, device):
     model_init = torch.load(path, map_location=device)
+    model_init, wd  = model_init['model'], model_init['weight_norm']
     # try:
     #     net = ResNet(BasicBlockNoShort, [9,9,9])
     #     net.load_state_dict(model_init['state_dict'])
@@ -41,7 +42,7 @@ def load_model_with_weights(path, device):
     #     pass
     model_init.eval()
 
-    return model_init
+    return model_init, wd
 
 @torch.no_grad()
 def give_loss_acc(dataloader, model, criterion, device):
@@ -65,24 +66,23 @@ def give_loss_acc(dataloader, model, criterion, device):
         corr += torch.where(labels == torch.argmax(outputs, -1))[0].shape[0]
 
     acc = corr / num
-    return loss, acc
+    return loss/len(dataloader.dataset), acc
 
 
 def vis(rank, model1, model2, dirn, criterion, steps, indices, output):
 
     model1.to(rank)
     model2.to(rank)
-    vis_model = copy.deepcopy(model1)
     dirn.to(rank)
     train_loader, _ = load_cifar10(128, 2)
     # print(vis_model.parameters().is_cuda())
     for s, step in enumerate(steps):
-        for i, j, k in zip(model1.parameters(), model2.parameters(), dirn.parameters()):
-            k.data = i.data + step*j.data
-            loss, acc = give_loss_acc(train_loader, dirn, criterion, rank)
-            print(f"GPU {rank} : Loss {loss}, Acc {acc}")
-            output[indices[s], 0] = loss
-            output[indices[s], 1] = acc
+        for i, j, k in zip(model2.parameters(), model1.parameters(), dirn.parameters()):
+            k.data = step*i.data + (1-step)*j.data
+        loss, acc = give_loss_acc(train_loader, dirn, criterion, rank)
+        print(f"GPU {rank} : Step {step}, Loss {loss}, Acc {acc}")
+        output[indices[s], 0] = loss
+        output[indices[s], 1] = acc
 
 
 if __name__ == "__main__":
@@ -90,35 +90,36 @@ if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     nprocs = torch.cuda.device_count()
     workers = []
-
-    model1 = load_model_with_weights(args.weight_path1, 'cpu')
-    model2 = load_model_with_weights(args.weight_path2, 'cpu')
+    torch.manual_seed(6)
+    model1, wd1 = load_model_with_weights(args.weight_path1, 'cpu')
+    model2, wd2 = load_model_with_weights(args.weight_path2, 'cpu')
     criterion = nn.CrossEntropyLoss()
-
+    args.dataset = "cifar10"
     dirn = give_model(args)
     if(args.filternorm):
         for param, m_param in zip(dirn.parameters(), model1.parameters()):
-            if(len(m_param.shape) == 1):
+            if(len(m_param.shape) == -1):
                 param = m_param
                 continue
             param.data = torch.randn_like(param.data)
             param.data = param.data / torch.linalg.norm(param.data)
             param.data *= m_param
     else:
-        for param, m_param in zip(dirn.parameters(), model1.parameters()):
-            if(len(m_param.shape) == 1):
-                param = m_param
+        for param, m_param in zip(dirn.parameters(), model2.parameters()):
+            if(len(m_param.shape) == -1):
+                param = m_param.data
                 continue
             param.data = torch.randn_like(param.data)
 
-    alpha = torch.linspace(-1, 1, args.range)
+    alpha = torch.linspace(-1, 1.5, args.range)
     
     num_per_proc = alpha.shape[0] // nprocs
     steps = [alpha[i*num_per_proc:(i+1)*num_per_proc] for i in range(nprocs-1)]
     steps.append(alpha[(nprocs-1)*(num_per_proc):])
     indices = [torch.arange(i*num_per_proc, (i+1)*num_per_proc) for i in range(nprocs-1)]
     indices.append(torch.arange((nprocs-1)*num_per_proc, alpha.shape[0]))
-
+    print(steps)
+    print(indices)
     # Loss and Acc
     output = torch.zeros(alpha.shape[0], 2)
     output.share_memory_()
@@ -134,4 +135,5 @@ if __name__ == "__main__":
         workers[i].join()
 
     output = output.numpy()
-    np.save("2dsave.npy", np.array([[output[..., 0]], [output[..., 1]], alpha.numpy()]))
+    np.savez('2dsave.npz', loss=output[:,0], acc=output[:,1], x=alpha.numpy(), wd1 = wd1, wd2 = wd2)
+    #np.save("2dsave.npy", np.array([[output[..., 0]], [output[..., 1]], alpha.numpy()]))
