@@ -120,7 +120,7 @@ def load_mnist(batch_size, num_workers, distributed=False):
 
     return train_loader, test_loader
 
-def load_cifar10(batch_size, num_workers, distributed=False):
+def load_cifar10(batch_size, num_workers, distributed=False, augment=True):
 
     transform = transforms.Compose([
             transforms.ToTensor(),
@@ -133,12 +133,20 @@ def load_cifar10(batch_size, num_workers, distributed=False):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, transform=transforms.Compose([
+    if(augment):
+        train_transform = transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(32, 4),
             transforms.ToTensor(),
             normalize,
-        ]), download=True)
+        ])
+    else:
+        train_transform = transforms.Compose([
+            transforms.ToTensor(),
+            normalize,
+        ])
+
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, transform=train_transform, download=True)
 
     # trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
     testset = torchvision.datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
@@ -181,7 +189,7 @@ def load_xor(batch_size, num_workers, distributed=False):
 
 def load_dataset(args, distributed=True):
     if(args.dataset == 'cifar10'):
-        return load_cifar10(args.batch_size, 4, distributed=distributed)
+        return load_cifar10(args.batch_size, 4, distributed=distributed, augment=True)
     elif(args.dataset == "mnist"):
         return load_mnist(args.batch_size, 4, distributed=distributed)
     elif(args.dataset == "xor"):
