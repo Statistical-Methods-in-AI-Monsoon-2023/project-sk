@@ -22,6 +22,10 @@ function update(delta) {
 		world.controls.zoom_out = false
 	}
 
+	if(world.rotate_plot){
+		world.plot.rotation.y += 0.005
+	}
+
 	orbit.update()
 
 }

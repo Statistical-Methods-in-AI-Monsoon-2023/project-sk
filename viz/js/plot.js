@@ -38,6 +38,7 @@ function add_grid() {
 	grid.position.copy(world.origin)
 
 	scene.add(grid)
+	world.grid = grid
 }
 
 function get_color(val) {
@@ -222,7 +223,7 @@ function get_test_data() {
 
 function load_model_name() {
 	const { scene, plots, gui, blend_plot } = world
-	// scene.add(get_mesh(get_test_data()))
+	// world.plot.(get_mesh(get_test_data()))
 
 	fetch(world.model_path_prefix + world.active_model).then(e => e.json()).then(array => {
 		clear_plots()
@@ -243,7 +244,7 @@ function load_model_name() {
 					blend_plot.data = array[plot_name]
 					blend_plot.processed = process_data(array[plot_name])
 					// blend_plot.processed.mesh.material.color = new THREE.Color('darkred')
-					scene.add(blend_plot.processed.mesh)
+					world.plot.add(blend_plot.processed.mesh)
 				}
 				else if (plots[plot_name].processed.width != blend_plot.processed.width
 					|| plots[plot_name].processed.height != blend_plot.processed.height
@@ -253,7 +254,7 @@ function load_model_name() {
 					scene.remove(blend_plot.processed.mesh)
 					blend_plot.processed = process_data(array[plot_name])
 					// blend_plot.processed.mesh.material.color = new THREE.Color('darkred')
-					scene.add(blend_plot.processed.mesh)
+					world.plot.add(blend_plot.processed.mesh)
 				} else {
 					console.log("data have same shapes")
 				}
@@ -290,7 +291,7 @@ function update_plot(plot_name) {
 		let count = 0
 		for (let plot in plots) {
 			if (plots[plot].visible) {
-				scene.add(plots[plot].processed.mesh)
+				world.plot.add(plots[plot].processed.mesh)
 				world.active_plot = plot
 				count++
 			}
@@ -405,6 +406,11 @@ function add_minima_light() {
 }
 
 function add_plot() {
+	const { scene } = world
+	const plot = new THREE.Group()
+	scene.add(plot)
+	world.plot = plot
+
 	add_grid()
 	add_minima_light()
 }

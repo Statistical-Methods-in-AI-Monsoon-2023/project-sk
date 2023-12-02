@@ -44,9 +44,16 @@ const world = {
 	physics: {},
 	show_terrain: false,
 	show_page: true,
+	rotate_plot: false,
+	grid: null,
+	plot: null,
 	origin: new THREE.Vector3(-0.5, 0, -0.5),
 	
 	page: null,
+	page_div: null,
+	pages: [],
+	pages_scroll: null,
+	pages_group: null,
 }
 
 const globals = {

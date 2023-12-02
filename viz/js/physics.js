@@ -76,7 +76,7 @@ function initGraphics() {
 	terrainMesh.material.side = THREE.DoubleSide;
 	terrainMesh.visible = false;
 
-	world.scene.add(terrainMesh);
+	world.plot.add(terrainMesh);
 
 	// world.physics.terrainMesh = world.blend_plot.processed.mesh
 	world.physics.terrainMesh = terrainMesh
@@ -196,8 +196,7 @@ function add_ball() {
 	ball.receiveShadow = true;
 	ball.castShadow = true;
 
-	const { scene } = world
-	scene.add(ball);
+	world.plot.add(ball);
 	dynamicObjects.push(ball);
 	physicsWorld.addRigidBody(body);
 }
@@ -234,7 +233,7 @@ function clear_balls() {
 		Ammo.destroy(world.physics.dynamicObjects[i].userData.physicsBody)
 		world.physics.physicsWorld.removeRigidBody(world.physics.dynamicObjects[i].userData.physicsBody)
 		world.physics.dynamicObjects[i].userData.physicsBody = null
-		world.scene.remove(world.physics.dynamicObjects[i])
+		world.plot.remove(world.physics.dynamicObjects[i])
 		world.physics.dynamicObjects[i] = null
 	}
 
@@ -247,7 +246,7 @@ function destroy_physics() {
 
 	clear_balls()
 
-	world.scene.remove(world.physics.terrainMesh)
+	world.plot.remove(world.physics.terrainMesh)
 
 	Ammo = null
 }

@@ -32,12 +32,22 @@ function init_keys() {
 	}
 	document.addEventListener('keydown', handler(true))
 	document.addEventListener('keyup', handler(false))
+	document.addEventListener('keyup', function(event){
+		switch (event.key) {
+			case 'ArrowUp':
+				world.pages_scroll(1)
+				break
+			case 'ArrowDown':
+				world.pages_scroll(-1)
+				break
+		}
+	})
 }
 
 function init_orbit() {
 	const { orbit_cam, css_renderer } = world
 	const orbit = new OrbitControls(orbit_cam, css_renderer.domElement)
-	orbit.enableKeys = true
+	orbit.enableKeys = false
 	orbit.enableDamping = true
 
 	// block iframe events when moving

@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { world } from './world.js'
 import { add_plot, load_model_name } from './plot.js'
 import { CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js'
+import * as TWEEN from 'tween'
 
 function add_ground() {
 	const { scene } = world
@@ -69,37 +70,67 @@ function add_lights() {
 	// setInterval(light_move, 10)
 }
 
-function add_page() {
-	const { scene } = world
-
+function add_page(src) {
 	const div = document.createElement('div')
-	div.style.width = '100vw'
-	div.style.height = '50vh'
+	div.style.width = '768px'
+	div.style.height = '500px'
 	div.style.backgroundColor = 'transparent'
 
 	const iframe = document.createElement('iframe')
-	iframe.style.width = '100vh'
-	iframe.style.height = '50vw'
+	iframe.style.width = '768px'
+	iframe.style.height = '500px'
 	iframe.style.border = '0px'
-	iframe.src = "./blog.html"
+	iframe.src = src || 'https://www.google.com'
 	iframe.allowTransparency = true
 	div.appendChild(iframe)
 
 	const page = new CSS3DObject(div)
-	page.scale.set(0.005, 0.005, 0.005)
-	page.position.set(-2, 1, 0)
-	scene.add(page)
 
 	world.page = page
 	world.page_div = div
+
+	world.pages.push(page)
+	world.pages_group.add(page)
+
+	page.scale.set(0.005, 0.005, 0.005)
+	// page.position.set(-2, 1, 0)
+
+	// calculate page position
+	page.position.set(-2.5, world.pages.length * 4 - 3, 0)
 }
 
+function pages_scroll(p) {
+	// animate page position
+	const scroll_dist = p * 4
+	for (let page of world.pages) {
+		const startPosition = page.position.y;
+		const targetPosition = startPosition + scroll_dist;
+		new TWEEN.Tween(page.position)
+			.easing(TWEEN.Easing.Back.InOut)
+			.to({ y: targetPosition }, 750)
+			.start();
+	}
+}
+
+world.pages_scroll = pages_scroll
+
 function build_scene() {
+
+	const { scene } = world
+	const pages_group = new THREE.Group()
+	scene.add(pages_group)
+	world.pages_group = pages_group
+
 	// add_ground()
 	add_skybox()
 	add_plot()
 	load_model_name()
-	add_page()
+	add_page("./slides/blog.html")
+	add_page("./slides/blog.html")
+	add_page("./slides/blog.html")
+	add_page("./slides/blog.html")
+	add_page("./slides/blog.html")
+	add_page("./slides/blog.html")
 }
 
 export { build_scene, add_lights }
