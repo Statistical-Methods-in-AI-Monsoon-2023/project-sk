@@ -97,9 +97,9 @@ function add_page() {
 function build_scene() {
 	// add_ground()
 	add_skybox()
-	// add_plot()
-	// load_model_name()
-	// add_page()
+	add_plot()
+	load_model_name()
+	add_page()
 }
 
 export { build_scene, add_lights }
